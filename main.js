@@ -13,6 +13,7 @@ const COLOR_BLANK = '#f2f2f2';
 const COLOR_CHOSEN = '#e0e0e0';
 const COLOR_X = 'red';
 const COLOR_FILL = 'black';
+const COLOR_DRAG = 'pink';
 let mouseX;
 let mouseY;
 let chosenCell;
@@ -110,12 +111,18 @@ function Cell(x, y, index) {
   this.isChosen = false;
   this.tick = 1;
   this.grownBy = 0;
+  this.underDrag = false;
 
   this.CELL_GROW = 2;
   this.GROW_TO = 12;
   
   this.toggleTick = (override) => {
     this.tick = override || (this.tick) % 3 + 1;
+  }
+
+  this.toggleUnderDrag = (override) => {
+    this.underDrag = !this.underDrag;
+    console.log('Setting underdrag of', this.index, 'to', this.underDrag);
   }
 
   this.getTick = () => this.tick;
@@ -135,12 +142,13 @@ function Cell(x, y, index) {
       && mouseY >= this.y
       && mouseX < this.x + this.size
       && mouseY < this.y + this.size;
+    
     if (this.isChosen) {
       chosenCell = this.index;
     } else if (chosenCell === this.index){
       chosenCell = undefined;
     }
-
+    
     if (this.tick !== 1) {
        if (this.tick === 2) {
         this.color = COLOR_X;
@@ -149,37 +157,63 @@ function Cell(x, y, index) {
        }
     } else {  
       if (this.isChosen && this.color !== COLOR_CHOSEN) {
-        
         this.color = COLOR_CHOSEN;
       } else if (!this.isChosen && this.color === COLOR_CHOSEN) {
         this.color = COLOR_BLANK;
       }
     }
     
+    if(this.underDrag) {
+      this.color = COLOR_DRAG;
+    } else {
+      if (this.color === COLOR_DRAG) {
+        this.color = COLOR_BLANK;
+      }
+    }
+    
+    
     this.draw();
   };
 }
 
-let clickAnchor = undefined;
+let clickAnchorIndex = undefined;
+let upAnchorIndex = undefined;
 let paintToggle = undefined;
-let anchoredDirection = undefined;
-let anchoredCells = [];
+let anchorX, anchorY;
+let pRLength = 0;
+let lastDirection = undefined;
 canvas.onmousemove = (e) => {
   mouseX = e.clientX;
   mouseY = e.clientY;
-  if (clickAnchor) {
+  if (clickAnchorIndex) {
     const mouseCell = getCellByPosition(mouseX, mouseY);
-    console.log(mouseCell);
-    const cellDif = getCellDifference(clickAnchor, mouseCell);
-    console.log(cellDif);
-    if (Math.abs(cellDif.x) > Math.abs(cellDif.y)) {
-      if (cellDif.x > 0) {
-        console.log('RIGHT');
+    const cellDif = getCellDifference(clickAnchorIndex, mouseCell);
+    
+    if (Math.abs(mouseX - anchorX) > Math.abs(mouseY - anchorY)) {
+      if (mouseX - anchorX > 0) {
+        if (lastDirection !== 'RIGHT') {
+          possibleRange = [];
+          pRLength = 0;
+        }
+        lastDirection = 'RIGHT';
+        if (cellDif.x - pRLength > 0) {
+          for (var i = 0; i < cellDif.x - pRLength; i++) {
+            cells[clickAnchorIndex + (pRLength + i) * NUM_Y].toggleUnderDrag();
+          }
+          pRLength += i;
+          console.log(pRLength);
+        } else if (cellDif.x - pRLength < 0) {
+          for (var i = 0; i < pRLength - cellDif.x; i++) {
+            cells[clickAnchorIndex + (pRLength - i) * NUM_Y].toggleUnderDrag();
+          }
+          pRLength -= i;
+          console.log('SHORTER', pRLength);
+        }
       } else {
         console.log('LEFT');
       }
     } else {
-      if (cellDif.y > 0) {
+      if (mouseY - anchorY > 0) {
         console.log('DOWN');
       } else {
         console.log('UP');
@@ -189,17 +223,49 @@ canvas.onmousemove = (e) => {
 };
 
 canvas.onmousedown = (e) => {
+  anchorX = e.clientX;
+  anchorY = e.clientY;
   if (chosenCell) {
-    clickAnchor = chosenCell;
+    clickAnchorIndex = chosenCell;
     paintToggle = (cells[chosenCell].getTick() % 3) + 1;
     cells[chosenCell].toggleTick();
   }
 }
 
+function resetAllCellUnderDrag() {
+  let indexMove;
+  switch (lastDirection) {
+    case 'UP':
+      indexMove = -1;
+      break;
+    case 'RIGHT':
+      indexMove = NUM_Y;
+      break;
+    case 'DOWN':
+      indexMove = 1;
+      break;
+    case 'LEFT':
+      indexMove = -NUM_Y;
+      break;
+    default:
+      console.error('No direction');
+      return;
+  }
+  let currIndex = clickAnchorIndex;
+  for (var i = 0; i < pRLength; i++) {
+    cells[currIndex].toggleUnderDrag();
+    currIndex += indexMove;
+  }
+}
+
 canvas.onmouseup = (e) => {
-  anchoredCells = [];
-  clickAnchor = undefined; 
-  anchoredDirection = undefined;
+  resetAllCellUnderDrag();
+  anchorX = undefined;
+  anchorY = undefined;
+  possibleRange = [];
+  pRLength = 0;
+  clickAnchorIndex = undefined; 
+  lastDirection = undefined;
 }
 
 function animate() {
