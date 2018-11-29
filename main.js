@@ -17,16 +17,41 @@ const COLOR_DRAG = 'pink';
 let mouseX;
 let mouseY;
 let chosenCell;
+let lastChosen = undefined;
+
+let pressedKey = null;
+let isPainting = false;
 
 const NUM_X = 20;
 const NUM_Y = 20;
+const tickType = {
+  BLANK: 'BLANK',
+  TICKED: 'TICKED',
+  X: 'X',
+  DELETE: 'DELETE',
+};
 
 let xCheatSheet = [];
 let yCheatSheet = [];
 let cells = [];
+let toolText;
 let ticks = [];
+let chosenTool = tickType.BLANK;
+let win = [];
 
+/**
+ *  GAME FUNCTIONS
+ */
 function init() {
+  win = [];
+  cells = [];
+  ticks = [];
+  xCheatSheet = [];
+  yCheatSheet = [];
+  pressedKey = null;
+  isPainting = false;
+  chosenTool = tickType.BLANK;
+  // Initiate helpers
   let temp = 0;
   for (var i = 0; i < NUM_X; i++) {
     if (!(i % 5)) {
@@ -44,6 +69,7 @@ function init() {
     yCheatSheet.push(thisIndex);
   }
 
+  // Initiate Renderable objects
   cells = [];
   ticks = [];
   let index = 0;
@@ -62,9 +88,24 @@ function init() {
         Y_START + j * CELL_SIZE + (j - 1) * GAP_SIZE + y5gaps * GAP_5_SIZE,
         index++
         ));
-      ticks.push(null);
+        ticks.push(tickType.BLANK);
+        // Initiate win?
+        win.push(tickType.BLANK);
     }
   }
+  win[0] = tickType.TICKED;
+  toolText = new Text(xCheatSheet[NUM_X - 1] + CELL_SIZE + 20, Y_START, tickType.BLANK)
+}
+
+function checkWin() {
+  for (var i = 0; i < ticks.length; i++) {
+    if (ticks[i] !== win[i]) {
+      return false;
+    }
+  }
+  alert('You win!');
+  init();
+  return true;
 }
 
 init();
@@ -102,6 +143,25 @@ function getCellDifference(a, b) {
 const c = canvas.getContext('2d');
 
 let possibleRange = [];
+
+function Text(x, y, text) {
+  this.x = x;
+  this.y = y;
+  this.text = text;
+
+  this.setText = text => this.text = text;
+
+  this.draw = () => {
+    c.font = '30px Arial';
+    c.strokeText(this.text, this.x, this.y);
+  };
+
+  this.update = () => {
+    this.draw();
+  };
+}
+
+
 function Cell(x, y, index) {
   this.x = x;
   this.y = y;
@@ -109,14 +169,13 @@ function Cell(x, y, index) {
   this.index = index;
   this.size = CELL_SIZE;
   this.isChosen = false;
-  this.tick = 1;
+  this.tick = tickType.BLANK;
   this.grownBy = 0;
   this.underDrag = false;
 
   this.CELL_GROW = 2;
   this.GROW_TO = 12;
   
-  this.toggleTick = override => this.tick = override || (this.tick) % 3 + 1;
   this.getTick = () => this.tick;
   this.setTick = (override) => this.tick = override;
   
@@ -124,6 +183,16 @@ function Cell(x, y, index) {
     this.underDrag = !this.underDrag;
   }
   this.setUnderDrag = (override) => this.underDrag = override;
+
+  this.paintCell = (tick) => {
+    if (tick === tickType.DELETE) {
+      this.tick = tickType.BLANK;
+    } else {
+      if (this.tick === tickType.BLANK) {
+        this.tick = tick;
+      }
+    }
+  }
 
   this.draw = () => {
     c.fillStyle = this.color;
@@ -147,8 +216,8 @@ function Cell(x, y, index) {
       chosenCell = undefined;
     }
     
-    if (this.tick !== 1) {
-       if (this.tick === 2) {
+    if (this.tick !== tickType.BLANK) {
+       if (this.tick === tickType.X) {
         this.color = COLOR_X;
        } else {
         this.color = COLOR_FILL;
@@ -161,7 +230,7 @@ function Cell(x, y, index) {
       }
     }
 
-    if(this.underDrag && this.tick === 1) {
+    if(this.underDrag && this.tick === tickType.BLANK) {
       this.color = COLOR_DRAG;
     } else {
       if (this.color === COLOR_DRAG) {
@@ -173,27 +242,87 @@ function Cell(x, y, index) {
   };
 }
 
-let clickAnchorIndex = undefined;
-let upAnchorIndex = undefined;
-let paintToggle = undefined;
-let anchorX, anchorY;
-let lastDirection = undefined;
-
-function resetAllCellUnderDrag() {
-  for (var i = 0; i < possibleRange.length; i++) {
-    cells[possibleRange[i]].setUnderDrag(false);
+/**
+ *  EVENT HANDLERS
+ */
+const keyMapping = {
+  [tickType.X]: 'KeyA',
+  [tickType.TICKED]: 'KeyW',
+  [tickType.DELETE]: 'KeyD',
+}
+document.addEventListener("keypress", (e) => {
+  if (!pressedKey) {
+    switch (e.code) {
+      case keyMapping[tickType.X]:
+        chosenTool = tickType.X;
+        break;
+      case keyMapping[tickType.TICKED]:
+        chosenTool = tickType.TICKED;
+        break;
+      case keyMapping[tickType.DELETE]:
+        chosenTool = tickType.DELETE;
+        break;
+      default:
+        return;
+    }
+    pressedKey = e.code;
+    toolText.setText(chosenTool);
   }
-}
+}, false);
 
-function resetPR() {
-  resetAllCellUnderDrag();
-  possibleRange = [];
-  return 0;
-}
+document.addEventListener("keyup", (e) => {
+  if (e.code === pressedKey) {
+    pressedKey = null;
+    chosenTool = tickType.BLANK;
+    toolText.setText(chosenTool);
+  }
+}, false);
 
 canvas.onmousemove = (e) => {
   mouseX = e.clientX;
   mouseY = e.clientY;
+  if (lastChosen !== chosenCell) {
+    lastChosen = chosenCell;
+    if (isPainting && chosenCell >= 0) {
+      cells[chosenCell].paintCell(chosenTool);
+      ticks[chosenCell] = chosenTool === tickType.DELETE
+      ? tickType.BLANK
+      : chosenTool;
+      checkWin();
+    }
+  }
+};
+
+canvas.onmousedown = (e) => {
+  anchorX = e.clientX;
+  anchorY = e.clientY;
+  if (chosenCell >= 0 && chosenTool !== tickType.BLANK) {
+    cells[chosenCell].paintCell(chosenTool);
+    ticks[chosenCell] = chosenTool === tickType.DELETE
+      ? tickType.BLANK
+      : chosenTool;
+    isPainting = true;
+    checkWin();
+  }
+}
+
+canvas.onmouseup = (e) => {
+  isPainting = false;
+}
+
+function animate() {
+  requestAnimationFrame(animate);
+  c.clearRect(0, 0, xEdge, yEdge);
+  cells.forEach(el => el.update());
+  toolText.update();
+}
+
+animate();
+
+
+/* Ugh I worked so hard on this. 
+  Used to be in mousemove
+
   if (clickAnchorIndex) {
     const mouseCell = getCellByPosition(mouseX, mouseY);
     const cellDif = getCellDifference(clickAnchorIndex, mouseCell);
@@ -264,40 +393,5 @@ canvas.onmousemove = (e) => {
       }
     }
   }
-};
-
-canvas.onmousedown = (e) => {
-  anchorX = e.clientX;
-  anchorY = e.clientY;
-  if (chosenCell) {
-    clickAnchorIndex = chosenCell;
-    paintToggle = (cells[chosenCell].getTick() % 3) + 1;
-    cells[chosenCell].toggleTick();
-  }
-}
-
-function fillPRWithTick() {
-  for (var i = 0; i < possibleRange.length; i++) {
-    if (cells[possibleRange[i]].getTick() === 1) {
-      cells[possibleRange[i]].setTick(paintToggle);
-    }
-  }
-}
-
-canvas.onmouseup = (e) => {
-  fillPRWithTick();
-  resetAllCellUnderDrag();
-  anchorX = undefined;
-  anchorY = undefined;
-  possibleRange = [];
-  clickAnchorIndex = undefined; 
-  lastDirection = undefined;
-}
-
-function animate() {
-  requestAnimationFrame(animate);
-  c.clearRect(0, 0, xEdge, yEdge);
-  cells.forEach(el => el.update());
-}
-
-animate();
+  
+ */
