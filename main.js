@@ -44,7 +44,6 @@ function init() {
     yCheatSheet.push(thisIndex);
   }
 
-  console.log(xCheatSheet);
   cells = [];
   ticks = [];
   let index = 0;
@@ -102,6 +101,7 @@ function getCellDifference(a, b) {
 
 const c = canvas.getContext('2d');
 
+let possibleRange = [];
 function Cell(x, y, index) {
   this.x = x;
   this.y = y;
@@ -116,16 +116,14 @@ function Cell(x, y, index) {
   this.CELL_GROW = 2;
   this.GROW_TO = 12;
   
-  this.toggleTick = (override) => {
-    this.tick = override || (this.tick) % 3 + 1;
-  }
-
-  this.toggleUnderDrag = (override) => {
-    this.underDrag = !this.underDrag;
-    console.log('Setting underdrag of', this.index, 'to', this.underDrag);
-  }
-
+  this.toggleTick = override => this.tick = override || (this.tick) % 3 + 1;
   this.getTick = () => this.tick;
+  this.setTick = (override) => this.tick = override;
+  
+  this.toggleUnderDrag = () => {
+    this.underDrag = !this.underDrag;
+  }
+  this.setUnderDrag = (override) => this.underDrag = override;
 
   this.draw = () => {
     c.fillStyle = this.color;
@@ -162,15 +160,14 @@ function Cell(x, y, index) {
         this.color = COLOR_BLANK;
       }
     }
-    
-    if(this.underDrag) {
+
+    if(this.underDrag && this.tick === 1) {
       this.color = COLOR_DRAG;
     } else {
       if (this.color === COLOR_DRAG) {
         this.color = COLOR_BLANK;
       }
     }
-    
     
     this.draw();
   };
@@ -180,43 +177,90 @@ let clickAnchorIndex = undefined;
 let upAnchorIndex = undefined;
 let paintToggle = undefined;
 let anchorX, anchorY;
-let pRLength = 0;
 let lastDirection = undefined;
+
+function resetAllCellUnderDrag() {
+  for (var i = 0; i < possibleRange.length; i++) {
+    cells[possibleRange[i]].setUnderDrag(false);
+  }
+}
+
+function resetPR() {
+  resetAllCellUnderDrag();
+  possibleRange = [];
+  return 0;
+}
+
 canvas.onmousemove = (e) => {
   mouseX = e.clientX;
   mouseY = e.clientY;
   if (clickAnchorIndex) {
     const mouseCell = getCellByPosition(mouseX, mouseY);
     const cellDif = getCellDifference(clickAnchorIndex, mouseCell);
-    
+    let currPR = possibleRange.length;
     if (Math.abs(mouseX - anchorX) > Math.abs(mouseY - anchorY)) {
       if (mouseX - anchorX > 0) {
         if (lastDirection !== 'RIGHT') {
-          possibleRange = [];
-          pRLength = 0;
+          currPR = resetPR();
         }
         lastDirection = 'RIGHT';
-        if (cellDif.x - pRLength > 0) {
-          for (var i = 0; i < cellDif.x - pRLength; i++) {
-            cells[clickAnchorIndex + (pRLength + i) * NUM_Y].toggleUnderDrag();
+        if (cellDif.x - currPR > 0) {
+          for (var i = 0; i < cellDif.x - currPR; i++) {
+            cells[clickAnchorIndex + (currPR + i + 1) * NUM_Y].setUnderDrag(true);
+            possibleRange.push(clickAnchorIndex + (currPR + i + 1) * NUM_Y);
           }
-          pRLength += i;
-          console.log(pRLength);
-        } else if (cellDif.x - pRLength < 0) {
-          for (var i = 0; i < pRLength - cellDif.x; i++) {
-            cells[clickAnchorIndex + (pRLength - i) * NUM_Y].toggleUnderDrag();
+        } else if (cellDif.x - currPR < 0) {
+          for (var i = 0; i < currPR - cellDif.x; i++) {
+            cells[possibleRange.pop()].setUnderDrag(false);
           }
-          pRLength -= i;
-          console.log('SHORTER', pRLength);
         }
       } else {
-        console.log('LEFT');
+        if (lastDirection !== 'LEFT') {
+          currPR = resetPR();
+        }
+        lastDirection = 'LEFT';
+        if (Math.abs(cellDif.x) - currPR > 0) {
+          for (var i = 0; i < Math.abs(cellDif.x) - currPR; i++) {
+            cells[clickAnchorIndex - (currPR + i + 1) * NUM_Y].setUnderDrag(true);
+            possibleRange.push(clickAnchorIndex - (currPR + i + 1) * NUM_Y);
+          }
+        } else if (Math.abs(cellDif.x) - currPR < 0) {
+          for (var i = 0; i < currPR - Math.abs(cellDif.x); i++) {
+            cells[possibleRange.pop()].setUnderDrag(false);
+          }
+        }
       }
     } else {
       if (mouseY - anchorY > 0) {
-        console.log('DOWN');
+        if (lastDirection !== 'DOWN') {
+          currPR = resetPR();
+        }
+        lastDirection = 'DOWN';
+        if (cellDif.y - currPR > 0) {
+          for (var i = 0; i < cellDif.y - currPR; i++) {
+            cells[clickAnchorIndex + (currPR + i + 1)].setUnderDrag(true);
+            possibleRange.push(clickAnchorIndex + (currPR + i + 1));
+          }
+        } else if (cellDif.y - currPR < 0) {
+          for (var i = 0; i < currPR - cellDif.y; i++) {
+            cells[possibleRange.pop()].setUnderDrag(false);
+          }
+        }
       } else {
-        console.log('UP');
+        if (lastDirection !== 'UP') {
+          currPR = resetPR();
+        }
+        lastDirection = 'UP';
+        if (Math.abs(cellDif.y) - currPR > 0) {
+          for (var i = 0; i < Math.abs(cellDif.y) - currPR; i++) {
+            cells[clickAnchorIndex - (currPR + i + 1)].setUnderDrag(true);
+            possibleRange.push(clickAnchorIndex - (currPR + i + 1));
+          }
+        } else if (Math.abs(cellDif.y) - currPR < 0) {
+          for (var i = 0; i < currPR - Math.abs(cellDif.y); i++) {
+            cells[possibleRange.pop()].setUnderDrag(false);
+          }
+        }
       }
     }
   }
@@ -232,38 +276,20 @@ canvas.onmousedown = (e) => {
   }
 }
 
-function resetAllCellUnderDrag() {
-  let indexMove;
-  switch (lastDirection) {
-    case 'UP':
-      indexMove = -1;
-      break;
-    case 'RIGHT':
-      indexMove = NUM_Y;
-      break;
-    case 'DOWN':
-      indexMove = 1;
-      break;
-    case 'LEFT':
-      indexMove = -NUM_Y;
-      break;
-    default:
-      console.error('No direction');
-      return;
-  }
-  let currIndex = clickAnchorIndex;
-  for (var i = 0; i < pRLength; i++) {
-    cells[currIndex].toggleUnderDrag();
-    currIndex += indexMove;
+function fillPRWithTick() {
+  for (var i = 0; i < possibleRange.length; i++) {
+    if (cells[possibleRange[i]].getTick() === 1) {
+      cells[possibleRange[i]].setTick(paintToggle);
+    }
   }
 }
 
 canvas.onmouseup = (e) => {
+  fillPRWithTick();
   resetAllCellUnderDrag();
   anchorX = undefined;
   anchorY = undefined;
   possibleRange = [];
-  pRLength = 0;
   clickAnchorIndex = undefined; 
   lastDirection = undefined;
 }
@@ -271,7 +297,6 @@ canvas.onmouseup = (e) => {
 function animate() {
   requestAnimationFrame(animate);
   c.clearRect(0, 0, xEdge, yEdge);
-  chosenCell
   cells.forEach(el => el.update());
 }
 
