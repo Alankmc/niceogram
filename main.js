@@ -28,8 +28,8 @@ let lastChosen = undefined;
 let pressedKey = null;
 let isPainting = false;
 
-let NUM_X = 3;
-let NUM_Y = 3;
+let NUM_X = 10;
+let NUM_Y = 10;
 const tickType = {
   BLANK: 'BLANK',
   TICKED: 'TICKED',
@@ -392,17 +392,17 @@ function Cell(x, y, index) {
       && mouseY < this.y + this.size;
     
     if (this.isChosen) {
+      chosenCell = this.index;
+    } else if (chosenCell === this.index && leftBoard){
+      chosenCell = undefined;
+    }
+
+    if (chosenCell === this.index) {
       if (this.color !== COLOR_CHOSEN) {
         this.color = COLOR_CHOSEN;
       }
-      chosenCell = this.index;
-    } else if (chosenCell === this.index){
-      if (this.color === COLOR_CHOSEN) {
-        this.color = COLOR_BLANK;
-      }
-      if (leftBoard) {
-        chosenCell = undefined;
-      }
+    } else if (this.color === COLOR_CHOSEN) {
+      this.color = COLOR_BLANK;
     }
     
     if (this.tick !== tickType.BLANK) {
