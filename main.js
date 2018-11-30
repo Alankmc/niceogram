@@ -1,3 +1,5 @@
+// import Text from './Text';
+
 const canvas = document.getElementById('main-canvas');
 const xEdge = window.innerWidth;
 const yEdge = window.innerHeight - 200;
@@ -14,6 +16,8 @@ const COLOR_CHOSEN = '#e0e0e0';
 const COLOR_X = 'red';
 const COLOR_FILL = 'black';
 const COLOR_DRAG = 'pink';
+const COLOR_DIRECTION_INVISIBLE = 'white';
+const COLOR_DIRECTION_CHOSEN = '#e0e0e0';
 const DIRECTION_GAP = 3;
 const DIRECTION_FONT_SIZE = `${CELL_SIZE * 0.8}px`;
 const DIRECTION_TEXT_PAD = CELL_SIZE * 0.1;
@@ -24,8 +28,8 @@ let lastChosen = undefined;
 let pressedKey = null;
 let isPainting = false;
 
-let NUM_X = 10;
-let NUM_Y = 10;
+let NUM_X = 3;
+let NUM_Y = 3;
 const tickType = {
   BLANK: 'BLANK',
   TICKED: 'TICKED',
@@ -48,6 +52,10 @@ let maxXdirections = 0;
 let maxYdirections = 0;
 let xMapStart;
 let yMapStart;
+
+let xDirectionHighlight = [];
+let yDirectionHighlight = [];
+let leftBoard;
 
 function changeSizes() {
   NUM_Y = document.getElementById('map-height').value;
@@ -123,6 +131,8 @@ function init() {
   yCheatSheet = [];
   xDirectionText = [];
   yDirectionText = [];
+  xDirectionHighlight = [];
+  yDirectionHighlight = [];
   pressedKey = null;
   isPainting = false;
   chosenTool = tickType.BLANK;
@@ -139,6 +149,13 @@ function init() {
     if (!(i % 5)) {
       temp++;
     }
+    xDirectionHighlight.push(new DirectionHighlight(
+      X_START,
+      yMapStart + i * (CELL_SIZE) + (i - 1) * GAP_SIZE + temp * GAP_5_SIZE,
+      xMapStart - X_START - DIRECTION_GAP,
+      CELL_SIZE,
+      COLOR_DIRECTION_INVISIBLE,
+    ));
     for (var j = 0; j < currDirection.length; j++) { 
       currLine.push(new Text(
         xMapStart - (j + 1) * (CELL_SIZE + DIRECTION_GAP) + DIRECTION_TEXT_PAD,
@@ -157,6 +174,13 @@ function init() {
     if (!(i % 5)) {
       temp++;
     }
+    yDirectionHighlight.push(new DirectionHighlight(
+      xMapStart + i * (CELL_SIZE) + (i - 1) * GAP_SIZE + temp * GAP_5_SIZE,
+      Y_START,
+      CELL_SIZE, 
+      yMapStart - Y_START - DIRECTION_GAP,
+      COLOR_DIRECTION_INVISIBLE,
+    ));
     for (var j = 0; j < currDirection.length; j++) { 
       currLine.push(new Text(
         xMapStart + i * (CELL_SIZE + GAP_SIZE) + temp * GAP_5_SIZE + DIRECTION_TEXT_PAD,
@@ -168,7 +192,6 @@ function init() {
       }
     yDirectionText.push(currLine);
   }
-
   // Initiate helpers
   for (var i = 0; i < NUM_X; i++) {
     if (!(i % 5)) {
@@ -225,10 +248,8 @@ function giveUp() {
     for (var j = 0; j < NUM_Y; j++) {
       cells[i * NUM_Y + j].setTick(win[i * NUM_Y + j]);
       ticks[i * NUM_Y + j] = win[i * NUM_Y + j];
-
     }
   }
-  
 }
 
 function checkWin() {
@@ -279,26 +300,6 @@ function getCellDifference(a, b) {
 const c = canvas.getContext('2d');
 
 let possibleRange = [];
-
-function Text(x, y, text, size, maxWidth) {
-  this.x = x;
-  this.y = y;
-  this.text = text;
-  this.size = size;
-  this.setText = text => this.text = text;
-
-  this.draw = () => {
-    c.textBaseline = 'hanging';
-    c.textAlign = 'left';
-    c.font = this.size + ' Arial';
-    c.strokeText(this.text, this.x, this.y, maxWidth);
-  };
-
-  this.update = () => {
-    this.draw();
-  };
-}
-
 
 function Cell(x, y, index) {
   this.x = x;
@@ -391,9 +392,17 @@ function Cell(x, y, index) {
       && mouseY < this.y + this.size;
     
     if (this.isChosen) {
+      if (this.color !== COLOR_CHOSEN) {
+        this.color = COLOR_CHOSEN;
+      }
       chosenCell = this.index;
     } else if (chosenCell === this.index){
-      chosenCell = undefined;
+      if (this.color === COLOR_CHOSEN) {
+        this.color = COLOR_BLANK;
+      }
+      if (leftBoard) {
+        chosenCell = undefined;
+      }
     }
     
     if (this.tick !== tickType.BLANK) {
@@ -409,12 +418,6 @@ function Cell(x, y, index) {
       if (this.xGrownBy > 0) {
         this.reduceX();
       }
-    }
-
-    if (this.isChosen && this.color !== COLOR_CHOSEN) {
-      this.color = COLOR_CHOSEN;
-    } else if (!this.isChosen && this.color === COLOR_CHOSEN) {
-      this.color = COLOR_BLANK;
     }
     
     this.draw();
@@ -460,15 +463,28 @@ document.addEventListener("keyup", (e) => {
 canvas.onmousemove = (e) => {
   mouseX = e.clientX;
   mouseY = e.clientY;
+  leftBoard = mouseX > xCheatSheet[xCheatSheet.length - 1] + CELL_SIZE
+    || mouseX < xMapStart
+    || mouseY > yCheatSheet[yCheatSheet.length - 1] + CELL_SIZE
+    || mouseY < yMapStart;
   if (lastChosen !== chosenCell) {
+    console.log(lastChosen, chosenCell);
+    // Direction Highlights
+    (lastChosen >= 0) && yDirectionHighlight[Math.floor(lastChosen / NUM_Y)].setColor(COLOR_DIRECTION_INVISIBLE);
+    (chosenCell >= 0) && yDirectionHighlight[Math.floor(chosenCell / NUM_Y)].setColor(COLOR_DIRECTION_CHOSEN);
+    (lastChosen >= 0) && xDirectionHighlight[lastChosen % NUM_Y].setColor(COLOR_DIRECTION_INVISIBLE);
+    (chosenCell >= 0) && xDirectionHighlight[chosenCell % NUM_Y].setColor(COLOR_DIRECTION_CHOSEN);
+
     lastChosen = chosenCell;
-    if (isPainting && chosenCell >= 0) {
-      cells[chosenCell].paintCell(chosenTool);
-      ticks[chosenCell] = chosenTool === tickType.DELETE
+    let paintingAs = chosenTool === tickType.DELETE
       ? tickType.BLANK
       : chosenTool;
+    if (isPainting && chosenCell >= 0 && cells[chosenCell].getTick() !== paintingAs) {
+      cells[chosenCell].paintCell(chosenTool);
+      ticks[chosenCell] = paintingAs;
       checkWin();
     }
+
   }
 };
 
@@ -494,6 +510,8 @@ function animate() {
   c.clearRect(0, 0, xEdge, yEdge);
   cells.forEach(el => el.update());
   toolText.update();
+  yDirectionHighlight.forEach(el => el.update());
+  xDirectionHighlight.forEach(el => el.update());
   xDirectionText.forEach(line => line.forEach(el => el.update()));
   yDirectionText.forEach(line => line.forEach(el => el.update()));
 }
