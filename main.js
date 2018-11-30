@@ -1,6 +1,8 @@
+// import Text from './Text';
+
 const canvas = document.getElementById('main-canvas');
 const xEdge = window.innerWidth;
-const yEdge = window.innerHeight;
+const yEdge = window.innerHeight - 200;
 canvas.width = xEdge;
 canvas.height = yEdge;
 
@@ -14,6 +16,8 @@ const COLOR_CHOSEN = '#e0e0e0';
 const COLOR_X = 'red';
 const COLOR_FILL = 'black';
 const COLOR_DRAG = 'pink';
+const COLOR_DIRECTION_INVISIBLE = 'white';
+const COLOR_DIRECTION_CHOSEN = '#e0e0e0';
 const DIRECTION_GAP = 3;
 const DIRECTION_FONT_SIZE = `${CELL_SIZE * 0.8}px`;
 const DIRECTION_TEXT_PAD = CELL_SIZE * 0.1;
@@ -24,8 +28,8 @@ let lastChosen = undefined;
 let pressedKey = null;
 let isPainting = false;
 
-const NUM_X = 10;
-const NUM_Y = 5;
+let NUM_X = 10;
+let NUM_Y = 10;
 const tickType = {
   BLANK: 'BLANK',
   TICKED: 'TICKED',
@@ -49,6 +53,16 @@ let maxYdirections = 0;
 let xMapStart;
 let yMapStart;
 
+let xDirectionHighlight = [];
+let yDirectionHighlight = [];
+let leftBoard;
+
+function changeSizes() {
+  NUM_Y = document.getElementById('map-height').value;
+  NUM_X = document.getElementById('map-width').value;
+  init();
+}
+
 function randomWin(tickedPercentage) {
   for (var i = 0; i < NUM_X; i++) {
     for (var j = 0; j < NUM_Y; j++) {
@@ -57,7 +71,6 @@ function randomWin(tickedPercentage) {
         : tickType.BLANK);
     }
   }
-  console.log(win);
 }
 
 function buildDirections() {
@@ -103,9 +116,6 @@ function buildDirections() {
     maxXdirections = Math.max(maxXdirections, currLine.length);
   }
 
-  console.log('X', xDirections);
-  console.log('Y', yDirections);
-
   xMapStart = X_START + (CELL_SIZE + DIRECTION_GAP) * maxXdirections;
   yMapStart = Y_START + (CELL_SIZE + DIRECTION_GAP) * maxYdirections;
 }
@@ -121,11 +131,13 @@ function init() {
   yCheatSheet = [];
   xDirectionText = [];
   yDirectionText = [];
+  xDirectionHighlight = [];
+  yDirectionHighlight = [];
   pressedKey = null;
   isPainting = false;
   chosenTool = tickType.BLANK;
 
-  randomWin(0.4);
+  randomWin(0.6);
   buildDirections();
 
   let currLine = [];
@@ -137,6 +149,13 @@ function init() {
     if (!(i % 5)) {
       temp++;
     }
+    xDirectionHighlight.push(new DirectionHighlight(
+      X_START,
+      yMapStart + i * (CELL_SIZE) + (i - 1) * GAP_SIZE + temp * GAP_5_SIZE,
+      xMapStart - X_START - DIRECTION_GAP,
+      CELL_SIZE,
+      COLOR_DIRECTION_INVISIBLE,
+    ));
     for (var j = 0; j < currDirection.length; j++) { 
       currLine.push(new Text(
         xMapStart - (j + 1) * (CELL_SIZE + DIRECTION_GAP) + DIRECTION_TEXT_PAD,
@@ -155,6 +174,13 @@ function init() {
     if (!(i % 5)) {
       temp++;
     }
+    yDirectionHighlight.push(new DirectionHighlight(
+      xMapStart + i * (CELL_SIZE) + (i - 1) * GAP_SIZE + temp * GAP_5_SIZE,
+      Y_START,
+      CELL_SIZE, 
+      yMapStart - Y_START - DIRECTION_GAP,
+      COLOR_DIRECTION_INVISIBLE,
+    ));
     for (var j = 0; j < currDirection.length; j++) { 
       currLine.push(new Text(
         xMapStart + i * (CELL_SIZE + GAP_SIZE) + temp * GAP_5_SIZE + DIRECTION_TEXT_PAD,
@@ -166,7 +192,6 @@ function init() {
       }
     yDirectionText.push(currLine);
   }
-
   // Initiate helpers
   for (var i = 0; i < NUM_X; i++) {
     if (!(i % 5)) {
@@ -209,9 +234,25 @@ function init() {
   toolText = new Text(xCheatSheet[NUM_X - 1] + CELL_SIZE + 20, yMapStart, tickType.BLANK, '30px');
 }
 
+function wipeBoard() {
+  for (var i = 0; i < NUM_X; i++) {
+    for (var j = 0; j < NUM_Y; j++) {
+      cells[i * NUM_Y + j].setTick(tickType.BLANK);
+      ticks[i * NUM_Y + j] = tickType.BLANK;
+    }
+  }
+}
+
+function giveUp() {
+  for (var i = 0; i < NUM_X; i++) {
+    for (var j = 0; j < NUM_Y; j++) {
+      cells[i * NUM_Y + j].setTick(win[i * NUM_Y + j]);
+      ticks[i * NUM_Y + j] = win[i * NUM_Y + j];
+    }
+  }
+}
+
 function checkWin() {
-  console.log('ticks', ticks);
-  console.log('win', win)
   for (var i = 0; i < ticks.length; i++) {
     if (win[i] === tickType.TICKED) {
       if (ticks[i] !== win[i]) {
@@ -260,26 +301,6 @@ const c = canvas.getContext('2d');
 
 let possibleRange = [];
 
-function Text(x, y, text, size, maxWidth) {
-  this.x = x;
-  this.y = y;
-  this.text = text;
-  this.size = size;
-  this.setText = text => this.text = text;
-
-  this.draw = () => {
-    c.textBaseline = 'hanging';
-    c.textAlign = 'left';
-    c.font = this.size + ' Arial';
-    c.strokeText(this.text, this.x, this.y, maxWidth);
-  };
-
-  this.update = () => {
-    this.draw();
-  };
-}
-
-
 function Cell(x, y, index) {
   this.x = x;
   this.y = y;
@@ -288,19 +309,15 @@ function Cell(x, y, index) {
   this.size = CELL_SIZE;
   this.isChosen = false;
   this.tick = tickType.BLANK;
-  this.grownBy = 0;
-  this.underDrag = false;
-
-  this.CELL_GROW = 2;
-  this.GROW_TO = 12;
+  this.tickGrownBy = 0;
+  this.xGrownBy = 0;
+  this.TICK_GROW_SPEED = 3;
+  this.TICK_GROW_TO = 0.8 * CELL_SIZE;
+  this.X_GROW_SPEED = 3;
+  this.X_GROW_TO = 0.3 * CELL_SIZE / 2;
   
   this.getTick = () => this.tick;
   this.setTick = (override) => this.tick = override;
-  
-  this.toggleUnderDrag = () => {
-    this.underDrag = !this.underDrag;
-  }
-  this.setUnderDrag = (override) => this.underDrag = override;
 
   this.paintCell = (tick) => {
     if (tick === tickType.DELETE) {
@@ -315,12 +332,58 @@ function Cell(x, y, index) {
   this.draw = () => {
     c.fillStyle = this.color;
     c.fillRect(
-      this.x - this.grownBy / 2,
-      this.y - this.grownBy / 2,
-      this.size + this.grownBy,
-      this.size + this.grownBy
+      this.x,
+      this.y,
+      this.size,
+      this.size
     );
+    if (this.tickGrownBy) {
+      c.fillStyle = COLOR_FILL;
+      c.fillRect(
+        this.x + CELL_SIZE / 2 - this.tickGrownBy / 2,
+        this.y + CELL_SIZE / 2 - this.tickGrownBy / 2,
+        this.tickGrownBy,
+        this.tickGrownBy,
+      )
+    }
+    if (this.xGrownBy) {
+      c.fillStyle = COLOR_X;
+      c.beginPath();
+      c.arc(
+        this.x + CELL_SIZE / 2,
+        this.y + CELL_SIZE / 2,
+        this.xGrownBy,
+        0,
+        Math.PI * 2,
+        false);
+      c.fill();
+      c.stroke();
+    }
   };
+
+  this.growTick = () => {
+    this.tickGrownBy = this.tickGrownBy + this.TICK_GROW_SPEED > this.TICK_GROW_TO
+      ? this.TICK_GROW_TO
+      : this.TICK_GROW_SPEED + this.tickGrownBy;
+  }
+
+  this.reduceTick = () => {
+    this.tickGrownBy = this.tickGrownBy - this.TICK_GROW_SPEED < 0
+      ? 0
+      : this.tickGrownBy - this.TICK_GROW_SPEED;
+  }
+
+  this.growX = () => {
+    this.xGrownBy = this.xGrownBy + this.X_GROW_SPEED > this.X_GROW_TO
+      ? this.X_GROW_TO
+      : this.X_GROW_SPEED + this.xGrownBy;
+  }
+
+  this.reduceX = () => {
+    this.xGrownBy = this.xGrownBy - this.X_GROW_SPEED < 0
+      ? 0
+      : this.xGrownBy - this.X_GROW_SPEED;
+  }
 
   this.update = () => {
     this.isChosen = mouseX >= this.x
@@ -330,29 +393,30 @@ function Cell(x, y, index) {
     
     if (this.isChosen) {
       chosenCell = this.index;
-    } else if (chosenCell === this.index){
+    } else if (chosenCell === this.index && leftBoard){
       chosenCell = undefined;
+    }
+
+    if (chosenCell === this.index) {
+      if (this.color !== COLOR_CHOSEN) {
+        this.color = COLOR_CHOSEN;
+      }
+    } else if (this.color === COLOR_CHOSEN) {
+      this.color = COLOR_BLANK;
     }
     
     if (this.tick !== tickType.BLANK) {
-       if (this.tick === tickType.X) {
-        this.color = COLOR_X;
-       } else {
-        this.color = COLOR_FILL;
-       }
-    } else {  
-      if (this.isChosen && this.color !== COLOR_CHOSEN) {
-        this.color = COLOR_CHOSEN;
-      } else if (!this.isChosen && this.color === COLOR_CHOSEN) {
-        this.color = COLOR_BLANK;
+      if (this.tick === tickType.X) {
+       this.growX();
+      } else if (this.tickGrownBy < this.TICK_GROW_TO) {
+       this.growTick();
       }
-    }
-
-    if(this.underDrag && this.tick === tickType.BLANK) {
-      this.color = COLOR_DRAG;
-    } else {
-      if (this.color === COLOR_DRAG) {
-        this.color = COLOR_BLANK;
+    } else {  
+      if (this.tickGrownBy > 0) {
+        this.reduceTick();
+      }
+      if (this.xGrownBy > 0) {
+        this.reduceX();
       }
     }
     
@@ -399,15 +463,28 @@ document.addEventListener("keyup", (e) => {
 canvas.onmousemove = (e) => {
   mouseX = e.clientX;
   mouseY = e.clientY;
+  leftBoard = mouseX > xCheatSheet[xCheatSheet.length - 1] + CELL_SIZE
+    || mouseX < xMapStart
+    || mouseY > yCheatSheet[yCheatSheet.length - 1] + CELL_SIZE
+    || mouseY < yMapStart;
   if (lastChosen !== chosenCell) {
+    console.log(lastChosen, chosenCell);
+    // Direction Highlights
+    (lastChosen >= 0) && yDirectionHighlight[Math.floor(lastChosen / NUM_Y)].setColor(COLOR_DIRECTION_INVISIBLE);
+    (chosenCell >= 0) && yDirectionHighlight[Math.floor(chosenCell / NUM_Y)].setColor(COLOR_DIRECTION_CHOSEN);
+    (lastChosen >= 0) && xDirectionHighlight[lastChosen % NUM_Y].setColor(COLOR_DIRECTION_INVISIBLE);
+    (chosenCell >= 0) && xDirectionHighlight[chosenCell % NUM_Y].setColor(COLOR_DIRECTION_CHOSEN);
+
     lastChosen = chosenCell;
-    if (isPainting && chosenCell >= 0) {
-      cells[chosenCell].paintCell(chosenTool);
-      ticks[chosenCell] = chosenTool === tickType.DELETE
+    let paintingAs = chosenTool === tickType.DELETE
       ? tickType.BLANK
       : chosenTool;
+    if (isPainting && chosenCell >= 0 && cells[chosenCell].getTick() !== paintingAs) {
+      cells[chosenCell].paintCell(chosenTool);
+      ticks[chosenCell] = paintingAs;
       checkWin();
     }
+
   }
 };
 
@@ -433,6 +510,8 @@ function animate() {
   c.clearRect(0, 0, xEdge, yEdge);
   cells.forEach(el => el.update());
   toolText.update();
+  yDirectionHighlight.forEach(el => el.update());
+  xDirectionHighlight.forEach(el => el.update());
   xDirectionText.forEach(line => line.forEach(el => el.update()));
   yDirectionText.forEach(line => line.forEach(el => el.update()));
 }
