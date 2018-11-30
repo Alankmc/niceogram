@@ -1,6 +1,6 @@
 const canvas = document.getElementById('main-canvas');
 const xEdge = window.innerWidth;
-const yEdge = window.innerHeight;
+const yEdge = window.innerHeight - 200;
 canvas.width = xEdge;
 canvas.height = yEdge;
 
@@ -24,8 +24,8 @@ let lastChosen = undefined;
 let pressedKey = null;
 let isPainting = false;
 
-const NUM_X = 10;
-const NUM_Y = 5;
+let NUM_X = 10;
+let NUM_Y = 10;
 const tickType = {
   BLANK: 'BLANK',
   TICKED: 'TICKED',
@@ -49,6 +49,12 @@ let maxYdirections = 0;
 let xMapStart;
 let yMapStart;
 
+function changeSizes() {
+  NUM_Y = document.getElementById('map-height').value;
+  NUM_X = document.getElementById('map-width').value;
+  init();
+}
+
 function randomWin(tickedPercentage) {
   for (var i = 0; i < NUM_X; i++) {
     for (var j = 0; j < NUM_Y; j++) {
@@ -57,7 +63,6 @@ function randomWin(tickedPercentage) {
         : tickType.BLANK);
     }
   }
-  console.log(win);
 }
 
 function buildDirections() {
@@ -103,9 +108,6 @@ function buildDirections() {
     maxXdirections = Math.max(maxXdirections, currLine.length);
   }
 
-  console.log('X', xDirections);
-  console.log('Y', yDirections);
-
   xMapStart = X_START + (CELL_SIZE + DIRECTION_GAP) * maxXdirections;
   yMapStart = Y_START + (CELL_SIZE + DIRECTION_GAP) * maxYdirections;
 }
@@ -125,7 +127,7 @@ function init() {
   isPainting = false;
   chosenTool = tickType.BLANK;
 
-  randomWin(0.4);
+  randomWin(0.6);
   buildDirections();
 
   let currLine = [];
@@ -210,8 +212,6 @@ function init() {
 }
 
 function checkWin() {
-  console.log('ticks', ticks);
-  console.log('win', win)
   for (var i = 0; i < ticks.length; i++) {
     if (win[i] === tickType.TICKED) {
       if (ticks[i] !== win[i]) {
