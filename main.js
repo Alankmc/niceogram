@@ -211,6 +211,26 @@ function init() {
   toolText = new Text(xCheatSheet[NUM_X - 1] + CELL_SIZE + 20, yMapStart, tickType.BLANK, '30px');
 }
 
+function wipeBoard() {
+  for (var i = 0; i < NUM_X; i++) {
+    for (var j = 0; j < NUM_Y; j++) {
+      cells[i * NUM_Y + j].setTick(tickType.BLANK);
+      ticks[i * NUM_Y + j] = tickType.BLANK;
+    }
+  }
+}
+
+function giveUp() {
+  for (var i = 0; i < NUM_X; i++) {
+    for (var j = 0; j < NUM_Y; j++) {
+      cells[i * NUM_Y + j].setTick(win[i * NUM_Y + j]);
+      ticks[i * NUM_Y + j] = win[i * NUM_Y + j];
+
+    }
+  }
+  
+}
+
 function checkWin() {
   for (var i = 0; i < ticks.length; i++) {
     if (win[i] === tickType.TICKED) {
@@ -288,19 +308,15 @@ function Cell(x, y, index) {
   this.size = CELL_SIZE;
   this.isChosen = false;
   this.tick = tickType.BLANK;
-  this.grownBy = 0;
-  this.underDrag = false;
-
-  this.CELL_GROW = 2;
-  this.GROW_TO = 12;
+  this.tickGrownBy = 0;
+  this.xGrownBy = 0;
+  this.TICK_GROW_SPEED = 3;
+  this.TICK_GROW_TO = 0.8 * CELL_SIZE;
+  this.X_GROW_SPEED = 3;
+  this.X_GROW_TO = 0.3 * CELL_SIZE / 2;
   
   this.getTick = () => this.tick;
   this.setTick = (override) => this.tick = override;
-  
-  this.toggleUnderDrag = () => {
-    this.underDrag = !this.underDrag;
-  }
-  this.setUnderDrag = (override) => this.underDrag = override;
 
   this.paintCell = (tick) => {
     if (tick === tickType.DELETE) {
@@ -315,12 +331,58 @@ function Cell(x, y, index) {
   this.draw = () => {
     c.fillStyle = this.color;
     c.fillRect(
-      this.x - this.grownBy / 2,
-      this.y - this.grownBy / 2,
-      this.size + this.grownBy,
-      this.size + this.grownBy
+      this.x,
+      this.y,
+      this.size,
+      this.size
     );
+    if (this.tickGrownBy) {
+      c.fillStyle = COLOR_FILL;
+      c.fillRect(
+        this.x + CELL_SIZE / 2 - this.tickGrownBy / 2,
+        this.y + CELL_SIZE / 2 - this.tickGrownBy / 2,
+        this.tickGrownBy,
+        this.tickGrownBy,
+      )
+    }
+    if (this.xGrownBy) {
+      c.fillStyle = COLOR_X;
+      c.beginPath();
+      c.arc(
+        this.x + CELL_SIZE / 2,
+        this.y + CELL_SIZE / 2,
+        this.xGrownBy,
+        0,
+        Math.PI * 2,
+        false);
+      c.fill();
+      c.stroke();
+    }
   };
+
+  this.growTick = () => {
+    this.tickGrownBy = this.tickGrownBy + this.TICK_GROW_SPEED > this.TICK_GROW_TO
+      ? this.TICK_GROW_TO
+      : this.TICK_GROW_SPEED + this.tickGrownBy;
+  }
+
+  this.reduceTick = () => {
+    this.tickGrownBy = this.tickGrownBy - this.TICK_GROW_SPEED < 0
+      ? 0
+      : this.tickGrownBy - this.TICK_GROW_SPEED;
+  }
+
+  this.growX = () => {
+    this.xGrownBy = this.xGrownBy + this.X_GROW_SPEED > this.X_GROW_TO
+      ? this.X_GROW_TO
+      : this.X_GROW_SPEED + this.xGrownBy;
+  }
+
+  this.reduceX = () => {
+    this.xGrownBy = this.xGrownBy - this.X_GROW_SPEED < 0
+      ? 0
+      : this.xGrownBy - this.X_GROW_SPEED;
+  }
 
   this.update = () => {
     this.isChosen = mouseX >= this.x
@@ -335,25 +397,24 @@ function Cell(x, y, index) {
     }
     
     if (this.tick !== tickType.BLANK) {
-       if (this.tick === tickType.X) {
-        this.color = COLOR_X;
-       } else {
-        this.color = COLOR_FILL;
-       }
+      if (this.tick === tickType.X) {
+       this.growX();
+      } else if (this.tickGrownBy < this.TICK_GROW_TO) {
+       this.growTick();
+      }
     } else {  
-      if (this.isChosen && this.color !== COLOR_CHOSEN) {
-        this.color = COLOR_CHOSEN;
-      } else if (!this.isChosen && this.color === COLOR_CHOSEN) {
-        this.color = COLOR_BLANK;
+      if (this.tickGrownBy > 0) {
+        this.reduceTick();
+      }
+      if (this.xGrownBy > 0) {
+        this.reduceX();
       }
     }
 
-    if(this.underDrag && this.tick === tickType.BLANK) {
-      this.color = COLOR_DRAG;
-    } else {
-      if (this.color === COLOR_DRAG) {
-        this.color = COLOR_BLANK;
-      }
+    if (this.isChosen && this.color !== COLOR_CHOSEN) {
+      this.color = COLOR_CHOSEN;
+    } else if (!this.isChosen && this.color === COLOR_CHOSEN) {
+      this.color = COLOR_BLANK;
     }
     
     this.draw();
