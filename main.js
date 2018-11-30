@@ -6,7 +6,7 @@ canvas.height = yEdge;
 
 const X_START = 30;
 const Y_START = 30;
-const CELL_SIZE = 20;
+const CELL_SIZE = 25;
 const GAP_SIZE = 1;
 const GAP_5_SIZE = 3;
 const COLOR_BLANK = '#f2f2f2';
@@ -14,16 +14,18 @@ const COLOR_CHOSEN = '#e0e0e0';
 const COLOR_X = 'red';
 const COLOR_FILL = 'black';
 const COLOR_DRAG = 'pink';
+const DIRECTION_GAP = 3;
+const DIRECTION_FONT_SIZE = `${CELL_SIZE * 0.8}px`;
+const DIRECTION_TEXT_PAD = CELL_SIZE * 0.1;
 let mouseX;
 let mouseY;
 let chosenCell;
 let lastChosen = undefined;
-
 let pressedKey = null;
 let isPainting = false;
 
-const NUM_X = 20;
-const NUM_Y = 20;
+const NUM_X = 10;
+const NUM_Y = 5;
 const tickType = {
   BLANK: 'BLANK',
   TICKED: 'TICKED',
@@ -38,6 +40,75 @@ let toolText;
 let ticks = [];
 let chosenTool = tickType.BLANK;
 let win = [];
+let xDirections = [];
+let yDirections = [];
+let xDirectionText = [];
+let yDirectionText = [];
+let maxXdirections = 0;
+let maxYdirections = 0;
+let xMapStart;
+let yMapStart;
+
+function randomWin(tickedPercentage) {
+  for (var i = 0; i < NUM_X; i++) {
+    for (var j = 0; j < NUM_Y; j++) {
+      win.push(Math.random() < tickedPercentage
+        ? tickType.TICKED
+        : tickType.BLANK);
+    }
+  }
+  console.log(win);
+}
+
+function buildDirections() {
+  xDirections = [];
+  yDirections = [];
+  maxXdirections = 0;
+  maxYdirections = 0;
+  let currTrain;
+  let currLine;
+  for (var i = 0; i < NUM_X; i++) {
+    currTrain = 0;
+    currLine = [];
+    for (var j = 0; j < NUM_Y; j++) {
+      if (win[i * NUM_Y + j] === tickType.TICKED) {
+        currTrain++;
+      } else if (currTrain) {
+        currLine.push(currTrain);
+        currTrain = 0;
+      }
+    }
+    if (currTrain) {
+      currLine.push(currTrain);
+    }
+    yDirections.push(currLine);
+    maxYdirections = Math.max(maxYdirections, currLine.length);
+  }
+  
+  for (var i = 0; i < NUM_Y; i++) {
+    currTrain = 0;
+    currLine = [];
+    for (var j = 0; j < NUM_X; j++) {
+      if (win[i + j * NUM_Y] === tickType.TICKED) {
+        currTrain++;
+      } else if (currTrain) {
+        currLine.push(currTrain);
+        currTrain = 0;
+      }
+    }
+    if (currTrain) {
+      currLine.push(currTrain);
+    }
+    xDirections.push(currLine);
+    maxXdirections = Math.max(maxXdirections, currLine.length);
+  }
+
+  console.log('X', xDirections);
+  console.log('Y', yDirections);
+
+  xMapStart = X_START + (CELL_SIZE + DIRECTION_GAP) * maxXdirections;
+  yMapStart = Y_START + (CELL_SIZE + DIRECTION_GAP) * maxYdirections;
+}
 
 /**
  *  GAME FUNCTIONS
@@ -48,16 +119,60 @@ function init() {
   ticks = [];
   xCheatSheet = [];
   yCheatSheet = [];
+  xDirectionText = [];
+  yDirectionText = [];
   pressedKey = null;
   isPainting = false;
   chosenTool = tickType.BLANK;
-  // Initiate helpers
+
+  randomWin(0.4);
+  buildDirections();
+
+  let currLine = [];
+  let currDirection;
   let temp = 0;
+  for (var i = 0; i < NUM_Y; i++) {
+    currDirection = xDirections[i];
+    currLine = [];
+    if (!(i % 5)) {
+      temp++;
+    }
+    for (var j = 0; j < currDirection.length; j++) { 
+      currLine.push(new Text(
+        xMapStart - (j + 1) * (CELL_SIZE + DIRECTION_GAP) + DIRECTION_TEXT_PAD,
+        yMapStart + i * (CELL_SIZE + GAP_SIZE) + temp * GAP_5_SIZE + DIRECTION_TEXT_PAD,
+        currDirection[currDirection.length - j - 1].toString(),
+        DIRECTION_FONT_SIZE,
+        CELL_SIZE * 0.8
+        ));
+      }
+    xDirectionText.push(currLine);
+  }
+  temp = 0;
+  for (var i = 0; i < NUM_X; i++) {
+    currDirection = yDirections[i];
+    currLine = [];
+    if (!(i % 5)) {
+      temp++;
+    }
+    for (var j = 0; j < currDirection.length; j++) { 
+      currLine.push(new Text(
+        xMapStart + i * (CELL_SIZE + GAP_SIZE) + temp * GAP_5_SIZE + DIRECTION_TEXT_PAD,
+        yMapStart - (j + 1) * (CELL_SIZE + DIRECTION_GAP) + DIRECTION_TEXT_PAD,
+        currDirection[currDirection.length - j - 1].toString(),
+        DIRECTION_FONT_SIZE,
+        CELL_SIZE * 0.8
+        ));
+      }
+    yDirectionText.push(currLine);
+  }
+
+  // Initiate helpers
   for (var i = 0; i < NUM_X; i++) {
     if (!(i % 5)) {
       temp++;
     }
-    let thisIndex = X_START + i * CELL_SIZE + (i - 1) * GAP_SIZE + temp * GAP_5_SIZE;
+    let thisIndex = xMapStart + i * CELL_SIZE + (i - 1) * GAP_SIZE + temp * GAP_5_SIZE;
     xCheatSheet.push(thisIndex);
   }
   temp = 0;
@@ -65,7 +180,7 @@ function init() {
     if (!(i % 5)) {
       temp++;
     }
-    let thisIndex = Y_START + i * CELL_SIZE + (i - 1) * GAP_SIZE + temp * GAP_5_SIZE;
+    let thisIndex = yMapStart + i * CELL_SIZE + (i - 1) * GAP_SIZE + temp * GAP_5_SIZE;
     yCheatSheet.push(thisIndex);
   }
 
@@ -84,23 +199,24 @@ function init() {
         y5gaps++;
       }
       cells.push(new Cell(
-        X_START + i * CELL_SIZE + (i - 1) * GAP_SIZE + x5gaps * GAP_5_SIZE,
-        Y_START + j * CELL_SIZE + (j - 1) * GAP_SIZE + y5gaps * GAP_5_SIZE,
+        xMapStart + i * CELL_SIZE + (i - 1) * GAP_SIZE + x5gaps * GAP_5_SIZE,
+        yMapStart + j * CELL_SIZE + (j - 1) * GAP_SIZE + y5gaps * GAP_5_SIZE,
         index++
         ));
         ticks.push(tickType.BLANK);
-        // Initiate win?
-        win.push(tickType.BLANK);
     }
   }
-  win[0] = tickType.TICKED;
-  toolText = new Text(xCheatSheet[NUM_X - 1] + CELL_SIZE + 20, Y_START, tickType.BLANK)
+  toolText = new Text(xCheatSheet[NUM_X - 1] + CELL_SIZE + 20, yMapStart, tickType.BLANK, '30px');
 }
 
 function checkWin() {
+  console.log('ticks', ticks);
+  console.log('win', win)
   for (var i = 0; i < ticks.length; i++) {
-    if (ticks[i] !== win[i]) {
-      return false;
+    if (win[i] === tickType.TICKED) {
+      if (ticks[i] !== win[i]) {
+        return false;
+      }
     }
   }
   alert('You win!');
@@ -111,7 +227,7 @@ function checkWin() {
 init();
 
 function getCellByPosition(x, y) {
-  if (x < X_START || y < Y_START) {
+  if (x < xMapStart || y < yMapStart) {
     return -1;
   }
   if (x > xCheatSheet[NUM_X - 1] + CELL_SIZE
@@ -144,16 +260,18 @@ const c = canvas.getContext('2d');
 
 let possibleRange = [];
 
-function Text(x, y, text) {
+function Text(x, y, text, size, maxWidth) {
   this.x = x;
   this.y = y;
   this.text = text;
-
+  this.size = size;
   this.setText = text => this.text = text;
 
   this.draw = () => {
-    c.font = '30px Arial';
-    c.strokeText(this.text, this.x, this.y);
+    c.textBaseline = 'hanging';
+    c.textAlign = 'left';
+    c.font = this.size + ' Arial';
+    c.strokeText(this.text, this.x, this.y, maxWidth);
   };
 
   this.update = () => {
@@ -315,6 +433,8 @@ function animate() {
   c.clearRect(0, 0, xEdge, yEdge);
   cells.forEach(el => el.update());
   toolText.update();
+  xDirectionText.forEach(line => line.forEach(el => el.update()));
+  yDirectionText.forEach(line => line.forEach(el => el.update()));
 }
 
 animate();
