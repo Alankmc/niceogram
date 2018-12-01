@@ -3,13 +3,17 @@ function Text(x, y, text, size, maxWidth) {
   this.y = y;
   this.text = text;
   this.size = size;
+  this.color = 'black';
+
   this.setText = text => this.text = text;
+  this.setColor = color => this.color = color;
 
   this.draw = () => {
     c.textBaseline = 'hanging';
     c.textAlign = 'left';
+    c.fillStyle = this.color;
     c.font = this.size + ' Arial';
-    c.strokeText(this.text, this.x, this.y, maxWidth);
+    c.fillText(this.text, this.x, this.y);
   };
 
   this.update = () => {

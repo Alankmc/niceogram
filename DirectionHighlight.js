@@ -8,6 +8,7 @@ function DirectionHighlight(x, y, width, height, color) {
   this.setColor = (color) => {
     this.color = color;
   }
+  
   this.draw = () => {
     c.fillStyle = this.color;
     c.fillRect(

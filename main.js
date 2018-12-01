@@ -48,6 +48,8 @@ let xDirections = [];
 let yDirections = [];
 let xDirectionText = [];
 let yDirectionText = [];
+let xDirectionHelper = [];
+let yDirectionHelper = [];
 let maxXdirections = 0;
 let maxYdirections = 0;
 let xMapStart;
@@ -73,6 +75,78 @@ function randomWin(tickedPercentage) {
   }
 }
 
+function getTrains(tickArray, coord, isX) {
+  let trains = [];
+  let currTrain = 0;
+  let nextCoord;
+  const maxCoord = isX ? NUM_Y : NUM_X;
+  for (var i = 0; i < maxCoord; i++) {
+    nextCoord = isX 
+      ? NUM_Y * i + coord
+      : i + coord * NUM_X;
+    if (tickArray[nextCoord] === tickType.TICKED) {
+      currTrain++;
+    } else if (currTrain) {
+      trains.push(currTrain);
+      currTrain = 0;
+    }
+  }
+  if (currTrain) {  
+    trains.push(currTrain);
+  }
+  return trains;
+}
+
+function compareTrainArrays(expected, current) {
+  const leftCheck = expected.reduce(cum => cum.concat([null]), []);
+  const rightCheck = expected.reduce(cum => cum.concat([null]), []);
+  let expectedIndex = 0;
+  let currIndex = 0;
+  while (expectedIndex < expected.length && currIndex < current.length) {
+    if (expected[expectedIndex] === current[currIndex]) {
+      leftCheck[expectedIndex] = true;
+      currIndex++;
+    }
+    expectedIndex++;
+  }
+  expectedIndex = expected.length - 1;
+  currIndex = current.length - 1;
+  while (expectedIndex >= 0 && currIndex >= 0) {
+    if (expected[expectedIndex] === current[currIndex]) {
+      rightCheck[expectedIndex] = true;
+      currIndex--;
+    }
+    expectedIndex--;
+  }
+  let truthArray = []
+  for (var i = 0; i < leftCheck.length; i++) {
+    truthArray.push(leftCheck[i] && rightCheck[i])
+  }
+
+  return truthArray;
+}
+
+function updateDirectionHelpers(cellIndex) {
+  const x = cellIndex % NUM_Y;
+  const y = Math.floor(cellIndex / NUM_X);
+  
+  let thisReturn = compareTrainArrays(
+    yDirections[y],
+    getTrains(ticks, y, false)
+  );
+  yDirectionHelper[y] = thisReturn;
+
+  thisReturn = compareTrainArrays(
+    xDirections[x],
+    getTrains(ticks, x, true)
+  );
+  xDirectionHelper[x] = thisReturn;
+  return {
+    x: xDirectionHelper[x], 
+    y: yDirectionHelper[y],
+  };
+}
+
 function buildDirections() {
   xDirections = [];
   yDirections = [];
@@ -80,40 +154,19 @@ function buildDirections() {
   maxYdirections = 0;
   let currTrain;
   let currLine;
+
   for (var i = 0; i < NUM_X; i++) {
-    currTrain = 0;
-    currLine = [];
-    for (var j = 0; j < NUM_Y; j++) {
-      if (win[i * NUM_Y + j] === tickType.TICKED) {
-        currTrain++;
-      } else if (currTrain) {
-        currLine.push(currTrain);
-        currTrain = 0;
-      }
-    }
-    if (currTrain) {
-      currLine.push(currTrain);
-    }
+    currLine = getTrains(win, i, false);
     yDirections.push(currLine);
     maxYdirections = Math.max(maxYdirections, currLine.length);
+    yDirectionHelper.push(currLine.reduce(cum => cum.concat([null]), []));
   }
   
   for (var i = 0; i < NUM_Y; i++) {
-    currTrain = 0;
-    currLine = [];
-    for (var j = 0; j < NUM_X; j++) {
-      if (win[i + j * NUM_Y] === tickType.TICKED) {
-        currTrain++;
-      } else if (currTrain) {
-        currLine.push(currTrain);
-        currTrain = 0;
-      }
-    }
-    if (currTrain) {
-      currLine.push(currTrain);
-    }
+    currLine = getTrains(win, i, true);
     xDirections.push(currLine);
     maxXdirections = Math.max(maxXdirections, currLine.length);
+    xDirectionHelper.push(currLine.reduce(cum => cum.concat([null]), []));
   }
 
   xMapStart = X_START + (CELL_SIZE + DIRECTION_GAP) * maxXdirections;
@@ -424,6 +477,25 @@ function Cell(x, y, index) {
   };
 }
 
+function updateDirectionTextColor(chosenCell, newHelpers) {
+  const x = Math.floor(chosenCell / NUM_X);
+  const y = chosenCell % NUM_Y;
+  for (var i = 0; i < newHelpers.x.length; i++) {
+    if (newHelpers.x[i]) {
+      xDirectionText[y][newHelpers.x.length - i - 1].setColor('blue');
+    } else {
+      xDirectionText[y][newHelpers.x.length - i - 1].setColor('black');
+    }
+  }
+  for (var i = 0; i < newHelpers.y.length; i++) {
+    if (newHelpers.y[i]) {
+      yDirectionText[x][newHelpers.y.length - i - 1].setColor('blue');
+    } else {
+      yDirectionText[x][newHelpers.y.length - i - 1].setColor('black');
+    }
+  }
+}
+
 /**
  *  EVENT HANDLERS
  */
@@ -468,7 +540,6 @@ canvas.onmousemove = (e) => {
     || mouseY > yCheatSheet[yCheatSheet.length - 1] + CELL_SIZE
     || mouseY < yMapStart;
   if (lastChosen !== chosenCell) {
-    console.log(lastChosen, chosenCell);
     // Direction Highlights
     (lastChosen >= 0) && yDirectionHighlight[Math.floor(lastChosen / NUM_Y)].setColor(COLOR_DIRECTION_INVISIBLE);
     (chosenCell >= 0) && yDirectionHighlight[Math.floor(chosenCell / NUM_Y)].setColor(COLOR_DIRECTION_CHOSEN);
@@ -482,9 +553,11 @@ canvas.onmousemove = (e) => {
     if (isPainting && chosenCell >= 0 && cells[chosenCell].getTick() !== paintingAs) {
       cells[chosenCell].paintCell(chosenTool);
       ticks[chosenCell] = paintingAs;
+      if (chosenTool !== tickType.X) {
+        updateDirectionTextColor(chosenCell, updateDirectionHelpers(chosenCell));
+      }
       checkWin();
     }
-
   }
 };
 
@@ -497,6 +570,9 @@ canvas.onmousedown = (e) => {
       ? tickType.BLANK
       : chosenTool;
     isPainting = true;
+    if (chosenTool !== tickType.X) {
+      updateDirectionTextColor(chosenCell, updateDirectionHelpers(chosenCell));
+    }
     checkWin();
   }
 }
@@ -517,80 +593,3 @@ function animate() {
 }
 
 animate();
-
-
-/* Ugh I worked so hard on this. 
-  Used to be in mousemove
-
-  if (clickAnchorIndex) {
-    const mouseCell = getCellByPosition(mouseX, mouseY);
-    const cellDif = getCellDifference(clickAnchorIndex, mouseCell);
-    let currPR = possibleRange.length;
-    if (Math.abs(mouseX - anchorX) > Math.abs(mouseY - anchorY)) {
-      if (mouseX - anchorX > 0) {
-        if (lastDirection !== 'RIGHT') {
-          currPR = resetPR();
-        }
-        lastDirection = 'RIGHT';
-        if (cellDif.x - currPR > 0) {
-          for (var i = 0; i < cellDif.x - currPR; i++) {
-            cells[clickAnchorIndex + (currPR + i + 1) * NUM_Y].setUnderDrag(true);
-            possibleRange.push(clickAnchorIndex + (currPR + i + 1) * NUM_Y);
-          }
-        } else if (cellDif.x - currPR < 0) {
-          for (var i = 0; i < currPR - cellDif.x; i++) {
-            cells[possibleRange.pop()].setUnderDrag(false);
-          }
-        }
-      } else {
-        if (lastDirection !== 'LEFT') {
-          currPR = resetPR();
-        }
-        lastDirection = 'LEFT';
-        if (Math.abs(cellDif.x) - currPR > 0) {
-          for (var i = 0; i < Math.abs(cellDif.x) - currPR; i++) {
-            cells[clickAnchorIndex - (currPR + i + 1) * NUM_Y].setUnderDrag(true);
-            possibleRange.push(clickAnchorIndex - (currPR + i + 1) * NUM_Y);
-          }
-        } else if (Math.abs(cellDif.x) - currPR < 0) {
-          for (var i = 0; i < currPR - Math.abs(cellDif.x); i++) {
-            cells[possibleRange.pop()].setUnderDrag(false);
-          }
-        }
-      }
-    } else {
-      if (mouseY - anchorY > 0) {
-        if (lastDirection !== 'DOWN') {
-          currPR = resetPR();
-        }
-        lastDirection = 'DOWN';
-        if (cellDif.y - currPR > 0) {
-          for (var i = 0; i < cellDif.y - currPR; i++) {
-            cells[clickAnchorIndex + (currPR + i + 1)].setUnderDrag(true);
-            possibleRange.push(clickAnchorIndex + (currPR + i + 1));
-          }
-        } else if (cellDif.y - currPR < 0) {
-          for (var i = 0; i < currPR - cellDif.y; i++) {
-            cells[possibleRange.pop()].setUnderDrag(false);
-          }
-        }
-      } else {
-        if (lastDirection !== 'UP') {
-          currPR = resetPR();
-        }
-        lastDirection = 'UP';
-        if (Math.abs(cellDif.y) - currPR > 0) {
-          for (var i = 0; i < Math.abs(cellDif.y) - currPR; i++) {
-            cells[clickAnchorIndex - (currPR + i + 1)].setUnderDrag(true);
-            possibleRange.push(clickAnchorIndex - (currPR + i + 1));
-          }
-        } else if (Math.abs(cellDif.y) - currPR < 0) {
-          for (var i = 0; i < currPR - Math.abs(cellDif.y); i++) {
-            cells[possibleRange.pop()].setUnderDrag(false);
-          }
-        }
-      }
-    }
-  }
-  
- */
