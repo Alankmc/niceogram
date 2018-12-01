@@ -13,7 +13,7 @@ function Text(x, y, text, size, maxWidth) {
     c.textAlign = 'left';
     c.fillStyle = this.color;
     c.font = this.size + ' Arial';
-    c.fillText(this.text, this.x, this.y);
+    c.fillText(this.text, this.x, this.y, maxWidth);
   };
 
   this.update = () => {

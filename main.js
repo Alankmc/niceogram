@@ -18,6 +18,8 @@ const COLOR_FILL = 'black';
 const COLOR_DRAG = 'pink';
 const COLOR_DIRECTION_INVISIBLE = 'white';
 const COLOR_DIRECTION_CHOSEN = '#e0e0e0';
+const COLOR_DIRECTION_TEXT = 'black';
+const COLOR_CORRECT_DIRECTION_TEXT = 'rgba(0, 0, 0, 0.28)';
 const DIRECTION_GAP = 3;
 const DIRECTION_FONT_SIZE = `${CELL_SIZE * 0.8}px`;
 const DIRECTION_TEXT_PAD = CELL_SIZE * 0.1;
@@ -482,16 +484,16 @@ function updateDirectionTextColor(chosenCell, newHelpers) {
   const y = chosenCell % NUM_Y;
   for (var i = 0; i < newHelpers.x.length; i++) {
     if (newHelpers.x[i]) {
-      xDirectionText[y][newHelpers.x.length - i - 1].setColor('blue');
+      xDirectionText[y][newHelpers.x.length - i - 1].setColor(COLOR_CORRECT_DIRECTION_TEXT);
     } else {
-      xDirectionText[y][newHelpers.x.length - i - 1].setColor('black');
+      xDirectionText[y][newHelpers.x.length - i - 1].setColor(COLOR_DIRECTION_TEXT);
     }
   }
   for (var i = 0; i < newHelpers.y.length; i++) {
     if (newHelpers.y[i]) {
-      yDirectionText[x][newHelpers.y.length - i - 1].setColor('blue');
+      yDirectionText[x][newHelpers.y.length - i - 1].setColor(COLOR_CORRECT_DIRECTION_TEXT);
     } else {
-      yDirectionText[x][newHelpers.y.length - i - 1].setColor('black');
+      yDirectionText[x][newHelpers.y.length - i - 1].setColor(COLOR_DIRECTION_TEXT);
     }
   }
 }
@@ -554,7 +556,7 @@ canvas.onmousemove = (e) => {
       cells[chosenCell].paintCell(chosenTool);
       ticks[chosenCell] = paintingAs;
       if (chosenTool !== tickType.X) {
-        updateDirectionTextColor(chosenCell, updateDirectionHelpers(chosenCell));
+        // updateDirectionTextColor(chosenCell, updateDirectionHelpers(chosenCell));
       }
       checkWin();
     }
@@ -571,7 +573,7 @@ canvas.onmousedown = (e) => {
       : chosenTool;
     isPainting = true;
     if (chosenTool !== tickType.X) {
-      updateDirectionTextColor(chosenCell, updateDirectionHelpers(chosenCell));
+      // updateDirectionTextColor(chosenCell, updateDirectionHelpers(chosenCell));
     }
     checkWin();
   }
