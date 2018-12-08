@@ -1,4 +1,5 @@
 // import Text from './Text';
+import Cell from './Cell';
 import DirectionHighlight from './DirectionHighlight';
 import Text from './Text';
 import { positions, colors, tickType } from './system-constants';
@@ -9,7 +10,6 @@ const DIRECTION_FONT_SIZE = `${positions.CELL_SIZE * 0.8}px`;
 const DIRECTION_TEXT_PAD = positions.CELL_SIZE * 0.1;
 let mouseX;
 let mouseY;
-let chosenCell;
 let lastChosen = undefined;
 let pressedKey = null;
 let isPainting = false;
@@ -57,9 +57,9 @@ function Board() {
 
   this.initEventListeners = () => {
     this.canvas.onmousedown = (e) => {
-      if (chosenCell >= 0 && chosenTool !== tickType.BLANK) {
-        cells[chosenCell].paintCell(chosenTool);
-        ticks[chosenCell] = chosenTool === tickType.DELETE
+      if (this.chosenCell >= 0 && chosenTool !== tickType.BLANK) {
+        cells[this.chosenCell].paintCell(chosenTool);
+        ticks[this.chosenCell] = chosenTool === tickType.DELETE
           ? tickType.BLANK
           : chosenTool;
         isPainting = true;
@@ -109,20 +109,20 @@ function Board() {
         || mouseX < xMapStart
         || mouseY > yCheatSheet[yCheatSheet.length - 1] + positions.CELL_SIZE
         || mouseY < yMapStart;
-      if (lastChosen !== chosenCell) {
+      if (lastChosen !== this.chosenCell) {
         // Direction Highlights
         (lastChosen >= 0) && yDirectionHighlight[Math.floor(lastChosen / NUM_Y)].setColor(colors.COLOR_DIRECTION_INVISIBLE);
-        (chosenCell >= 0) && yDirectionHighlight[Math.floor(chosenCell / NUM_Y)].setColor(colors.COLOR_DIRECTION_CHOSEN);
+        (this.chosenCell >= 0) && yDirectionHighlight[Math.floor(this.chosenCell / NUM_Y)].setColor(colors.COLOR_DIRECTION_CHOSEN);
         (lastChosen >= 0) && xDirectionHighlight[lastChosen % NUM_Y].setColor(colors.COLOR_DIRECTION_INVISIBLE);
-        (chosenCell >= 0) && xDirectionHighlight[chosenCell % NUM_Y].setColor(colors.COLOR_DIRECTION_CHOSEN);
+        (this.chosenCell >= 0) && xDirectionHighlight[this.chosenCell % NUM_Y].setColor(colors.COLOR_DIRECTION_CHOSEN);
     
-        lastChosen = chosenCell;
+        lastChosen = this.chosenCell;
         let paintingAs = chosenTool === tickType.DELETE
           ? tickType.BLANK
           : chosenTool;
-        if (isPainting && chosenCell >= 0 && cells[chosenCell].getTick() !== paintingAs) {
-          cells[chosenCell].paintCell(chosenTool);
-          ticks[chosenCell] = paintingAs;
+        if (isPainting && this.chosenCell >= 0 && cells[this.chosenCell].getTick() !== paintingAs) {
+          cells[this.chosenCell].paintCell(chosenTool);
+          ticks[this.chosenCell] = paintingAs;
           if (chosenTool !== tickType.X) {
             // updateDirectionTextColor(chosenCell, updateDirectionHelpers(chosenCell));
           }
@@ -132,10 +132,12 @@ function Board() {
     };
   }
   
+  this.setChosenCell = newCell => this.chosenCell = newCell;
+
   this.animate = () => {
     requestAnimationFrame(this.animate);
     this.c.clearRect(0, 0, this.xEdge, this.yEdge);
-    cells.forEach(el => el.update());
+    cells.forEach(el => el.update(mouseX, mouseY, this.chosenCell, leftBoard, this));
     toolText.update();
     yDirectionHighlight.forEach(el => el.update());
     xDirectionHighlight.forEach(el => el.update());
@@ -261,9 +263,9 @@ function Board() {
       yMapStart,
       tickType.BLANK,
      '30px',
-     '400px',
-     this.c
-     );
+      200,
+      this.c
+    );
   }
   
   this.checkWin = () => {
@@ -277,8 +279,7 @@ function Board() {
     alert('You win!');
     this.boardInit();
     return true;
-  }
-  
+  }  
 }
 
 function randomWin(tickedPercentage) {
@@ -368,7 +369,6 @@ function buildDirections() {
   yDirections = [];
   maxXdirections = 0;
   maxYdirections = 0;
-  let currTrain;
   let currLine;
 
   for (var i = 0; i < NUM_X; i++) {
@@ -432,134 +432,12 @@ function getCellByPosition(x, y) {
   return null;
 }
 
+
 // Comes in as index
 function getCellDifference(a, b) {
   return {
     x: Math.floor(b / NUM_X) - Math.floor(a / NUM_X),
     y: b % NUM_Y - a % NUM_Y,
-  };
-}
-
-function Cell(x, y, index, context) {
-  this.x = x;
-  this.y = y;
-  this.color = colors.COLOR_BLANK;
-  this.index = index;
-  this.size = positions.CELL_SIZE;
-  this.isChosen = false;
-  this.tick = tickType.BLANK;
-  this.tickGrownBy = 0;
-  this.xGrownBy = 0;
-  this.TICK_GROW_SPEED = 3;
-  this.TICK_GROW_TO = 0.8 * positions.CELL_SIZE;
-  this.X_GROW_SPEED = 3;
-  this.X_GROW_TO = 0.3 * positions.CELL_SIZE / 2;
-  this.c = context;
-  this.getTick = () => this.tick;
-  this.setTick = (override) => this.tick = override;
-
-  this.paintCell = (tick) => {
-    if (tick === tickType.DELETE) {
-      this.tick = tickType.BLANK;
-    } else {
-      if (this.tick === tickType.BLANK) {
-        this.tick = tick;
-      }
-    }
-  }
-
-  this.draw = (c) => {
-    c.fillStyle = this.color;
-    c.fillRect(
-      this.x,
-      this.y,
-      this.size,
-      this.size
-    );
-    if (this.tickGrownBy) {
-      c.fillStyle = colors.COLOR_FILL;
-      c.fillRect(
-        this.x + positions.CELL_SIZE / 2 - this.tickGrownBy / 2,
-        this.y + positions.CELL_SIZE / 2 - this.tickGrownBy / 2,
-        this.tickGrownBy,
-        this.tickGrownBy,
-      )
-    }
-    if (this.xGrownBy) {
-      c.fillStyle = colors.COLOR_X;
-      c.beginPath();
-      c.arc(
-        this.x + positions.CELL_SIZE / 2,
-        this.y + positions.CELL_SIZE / 2,
-        this.xGrownBy,
-        0,
-        Math.PI * 2,
-        false);
-      c.fill();
-      c.stroke();
-    }
-  };
-
-  this.growTick = () => {
-    this.tickGrownBy = this.tickGrownBy + this.TICK_GROW_SPEED > this.TICK_GROW_TO
-      ? this.TICK_GROW_TO
-      : this.TICK_GROW_SPEED + this.tickGrownBy;
-  }
-
-  this.reduceTick = () => {
-    this.tickGrownBy = this.tickGrownBy - this.TICK_GROW_SPEED < 0
-      ? 0
-      : this.tickGrownBy - this.TICK_GROW_SPEED;
-  }
-
-  this.growX = () => {
-    this.xGrownBy = this.xGrownBy + this.X_GROW_SPEED > this.X_GROW_TO
-      ? this.X_GROW_TO
-      : this.X_GROW_SPEED + this.xGrownBy;
-  }
-
-  this.reduceX = () => {
-    this.xGrownBy = this.xGrownBy - this.X_GROW_SPEED < 0
-      ? 0
-      : this.xGrownBy - this.X_GROW_SPEED;
-  }
-
-  this.update = () => {
-    this.isChosen = mouseX >= this.x
-      && mouseY >= this.y
-      && mouseX < this.x + this.size
-      && mouseY < this.y + this.size;
-    
-    if (this.isChosen) {
-      chosenCell = this.index;
-    } else if (chosenCell === this.index && leftBoard){
-      chosenCell = undefined;
-    }
-
-    if (chosenCell === this.index) {
-      if (this.color !== colors.COLOR_CHOSEN) {
-        this.color = colors.COLOR_CHOSEN;
-      }
-    } else if (this.color === colors.COLOR_CHOSEN) {
-      this.color = colors.COLOR_BLANK;
-    }
-    
-    if (this.tick !== tickType.BLANK) {
-      if (this.tick === tickType.X) {
-       this.growX();
-      } else if (this.tickGrownBy < this.TICK_GROW_TO) {
-       this.growTick();
-      }
-    } else {  
-      if (this.tickGrownBy > 0) {
-        this.reduceTick();
-      }
-      if (this.xGrownBy > 0) {
-        this.reduceX();
-      }
-    }
-    
-    this.draw(this.c);
   };
 }
 
@@ -582,9 +460,6 @@ function updateDirectionTextColor(chosenCell, newHelpers) {
   }
 }
 
-/**
- *  EVENT HANDLERS
- */
 export default function Game() {
   const b = new Board();
   b.initialize();

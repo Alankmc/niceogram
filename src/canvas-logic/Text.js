@@ -5,9 +5,9 @@ export default function Text(x, y, text, size, maxWidth, context) {
   this.size = size;
   this.color = 'black';
   this.c = context;
+
   this.setText = text => this.text = text;
   this.setColor = color => this.color = color;
-
   this.draw = () => {
     this.c.textBaseline = 'hanging';
     this.c.textAlign = 'left';
