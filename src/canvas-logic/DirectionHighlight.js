@@ -1,17 +1,18 @@
-function DirectionHighlight(x, y, width, height, color) {
+export default function DirectionHighlight(x, y, width, height, color, context) {
   this.x = x;
   this.y = y;
   this.width = width;
   this.height = height;
   this.color = color;
+  this.c = context;
 
   this.setColor = (color) => {
     this.color = color;
   }
   
   this.draw = () => {
-    c.fillStyle = this.color;
-    c.fillRect(
+    this.c.fillStyle = this.color;
+    this.c.fillRect(
       this.x,
       this.y,
       this.width,
