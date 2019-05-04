@@ -1,15 +1,16 @@
 import React from 'react';
 import Game from './canvas-logic/main';
+
 export default class Canvas extends React.Component {
   componentDidMount() {
-    Game();
+    const { updateToolCallback } = this.props;
+    Game({ updateToolCallback });
   }
 
   render() {
-    console.log('Rendering canvas');
     return (
       <div>
-        <canvas id="main-canvas"></canvas>
+        <canvas id="main-canvas" />
         <input type="text" id="map-width" placeholder="Width" />
         <input type="text" id="map-height" placeholder="Height" />
         {/* <button onClick="changeSizes()">INIT</button> */}

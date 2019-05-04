@@ -4,18 +4,17 @@ import DirectionHighlight from './DirectionHighlight';
 import Text from './Text';
 import { positions, colors, tickType } from './system-constants';
 
-
 const DIRECTION_GAP = 3;
 const DIRECTION_FONT_SIZE = `${positions.CELL_SIZE * 0.8}px`;
 const DIRECTION_TEXT_PAD = positions.CELL_SIZE * 0.1;
 let mouseX;
 let mouseY;
-let lastChosen = undefined;
+let lastChosen;
 let pressedKey = null;
 let isPainting = false;
 
-let NUM_X = 10;
-let NUM_Y = 10;
+const NUM_X = 10;
+const NUM_Y = 10;
 
 let xCheatSheet = [];
 let yCheatSheet = [];
@@ -28,8 +27,8 @@ let xDirections = [];
 let yDirections = [];
 let xDirectionText = [];
 let yDirectionText = [];
-let xDirectionHelper = [];
-let yDirectionHelper = [];
+const xDirectionHelper = [];
+const yDirectionHelper = [];
 let maxXdirections = 0;
 let maxYdirections = 0;
 let xMapStart;
@@ -42,21 +41,21 @@ const keyMapping = {
   [tickType.X]: 'KeyA',
   [tickType.TICKED]: 'KeyW',
   [tickType.DELETE]: 'KeyD',
-}
+};
 
 function Board() {
-  this.initialize = () => {
+  this.initialize = (updateToolCallback) => {
     this.canvas = document.getElementById('main-canvas');
     this.xEdge = window.innerWidth;
     this.yEdge = window.innerHeight - 200;
     this.canvas.width = this.xEdge;
     this.canvas.height = this.yEdge;
     this.c = this.canvas.getContext('2d');
-    this.initEventListeners()
-  }
+    this.initEventListeners(updateToolCallback);
+  };
 
-  this.initEventListeners = () => {
-    this.canvas.onmousedown = (e) => {
+  this.initEventListeners = (updateToolCallback) => {
+    this.canvas.onmousedown = () => {
       if (this.chosenCell >= 0 && chosenTool !== tickType.BLANK) {
         cells[this.chosenCell].paintCell(chosenTool);
         ticks[this.chosenCell] = chosenTool === tickType.DELETE
@@ -64,17 +63,17 @@ function Board() {
           : chosenTool;
         isPainting = true;
         if (chosenTool !== tickType.X) {
-          // updateDirectionTextColor(chosenCell, updateDirectionHelpers(chosenCell));
+          updateDirectionTextColor(this.chosenCell, updateDirectionHelpers(this.chosenCell));
         }
         this.checkWin();
       }
-    }
+    };
 
     this.canvas.onmouseup = (e) => {
       isPainting = false;
-    }
+    };
 
-    document.addEventListener("keypress", (e) => {
+    document.addEventListener('keypress', (e) => {
       if (!pressedKey) {
         switch (e.code) {
           case keyMapping[tickType.X]:
@@ -90,18 +89,20 @@ function Board() {
             return;
         }
         pressedKey = e.code;
-        toolText.setText(chosenTool);
+        updateToolCallback(chosenTool);
+        // toolText.setText(chosenTool);
       }
     }, false);
 
-    document.addEventListener("keyup", (e) => {
+    document.addEventListener('keyup', (e) => {
       if (e.code === pressedKey) {
         pressedKey = null;
         chosenTool = tickType.BLANK;
-        toolText.setText(chosenTool);
+        updateToolCallback(chosenTool);
+        // toolText.setText(chosenTool);
       }
     }, false);
-    
+
     this.canvas.onmousemove = (e) => {
       mouseX = e.clientX;
       mouseY = e.clientY;
@@ -115,35 +116,35 @@ function Board() {
         (this.chosenCell >= 0) && yDirectionHighlight[Math.floor(this.chosenCell / NUM_Y)].setColor(colors.COLOR_DIRECTION_CHOSEN);
         (lastChosen >= 0) && xDirectionHighlight[lastChosen % NUM_Y].setColor(colors.COLOR_DIRECTION_INVISIBLE);
         (this.chosenCell >= 0) && xDirectionHighlight[this.chosenCell % NUM_Y].setColor(colors.COLOR_DIRECTION_CHOSEN);
-    
+
         lastChosen = this.chosenCell;
-        let paintingAs = chosenTool === tickType.DELETE
+        const paintingAs = chosenTool === tickType.DELETE
           ? tickType.BLANK
           : chosenTool;
         if (isPainting && this.chosenCell >= 0 && cells[this.chosenCell].getTick() !== paintingAs) {
           cells[this.chosenCell].paintCell(chosenTool);
           ticks[this.chosenCell] = paintingAs;
           if (chosenTool !== tickType.X) {
-            // updateDirectionTextColor(chosenCell, updateDirectionHelpers(chosenCell));
+            updateDirectionTextColor(this.chosenCell, updateDirectionHelpers(this.chosenCell));
           }
           this.checkWin();
         }
       }
     };
-  }
-  
+  };
+
   this.setChosenCell = newCell => this.chosenCell = newCell;
 
   this.animate = () => {
     requestAnimationFrame(this.animate);
     this.c.clearRect(0, 0, this.xEdge, this.yEdge);
     cells.forEach(el => el.update(mouseX, mouseY, this.chosenCell, leftBoard, this));
-    toolText.update();
+    // toolText.update();
     yDirectionHighlight.forEach(el => el.update());
     xDirectionHighlight.forEach(el => el.update());
     xDirectionText.forEach(line => line.forEach(el => el.update()));
     yDirectionText.forEach(line => line.forEach(el => el.update()));
-  }
+  };
 
   this.boardInit = () => {
     win = [];
@@ -158,10 +159,10 @@ function Board() {
     pressedKey = null;
     isPainting = false;
     chosenTool = tickType.BLANK;
-  
+
     randomWin(0.6);
     buildDirections();
-  
+
     let currLine = [];
     let currDirection;
     let temp = 0;
@@ -177,18 +178,18 @@ function Board() {
         xMapStart - positions.X_START - DIRECTION_GAP,
         positions.CELL_SIZE,
         colors.COLOR_DIRECTION_INVISIBLE,
-        this.c
+        this.c,
       ));
-      for (var j = 0; j < currDirection.length; j++) { 
+      for (var j = 0; j < currDirection.length; j++) {
         currLine.push(new Text(
           xMapStart - (j + 1) * (positions.CELL_SIZE + DIRECTION_GAP) + DIRECTION_TEXT_PAD,
           yMapStart + i * (positions.CELL_SIZE + positions.GAP_SIZE) + temp * positions.GAP_5_SIZE + DIRECTION_TEXT_PAD,
           currDirection[currDirection.length - j - 1].toString(),
           DIRECTION_FONT_SIZE,
           positions.CELL_SIZE * 0.8,
-          this.c
-          ));
-        }
+          this.c,
+        ));
+      }
       xDirectionText.push(currLine);
     }
     temp = 0;
@@ -201,21 +202,21 @@ function Board() {
       yDirectionHighlight.push(new DirectionHighlight(
         xMapStart + i * (positions.CELL_SIZE) + (i - 1) * positions.GAP_SIZE + temp * positions.GAP_5_SIZE,
         positions.Y_START,
-        positions.CELL_SIZE, 
+        positions.CELL_SIZE,
         yMapStart - positions.Y_START - DIRECTION_GAP,
         colors.COLOR_DIRECTION_INVISIBLE,
-        this.c
+        this.c,
       ));
-      for (var j = 0; j < currDirection.length; j++) { 
+      for (var j = 0; j < currDirection.length; j++) {
         currLine.push(new Text(
           xMapStart + i * (positions.CELL_SIZE + positions.GAP_SIZE) + temp * positions.GAP_5_SIZE + DIRECTION_TEXT_PAD,
           yMapStart - (j + 1) * (positions.CELL_SIZE + DIRECTION_GAP) + DIRECTION_TEXT_PAD,
           currDirection[currDirection.length - j - 1].toString(),
           DIRECTION_FONT_SIZE,
           positions.CELL_SIZE * 0.8,
-          this.c
-          ));
-        }
+          this.c,
+        ));
+      }
       yDirectionText.push(currLine);
     }
     // Initiate helpers
@@ -223,7 +224,7 @@ function Board() {
       if (!(i % 5)) {
         temp++;
       }
-      let thisIndex = xMapStart + i * positions.CELL_SIZE + (i - 1) * positions.GAP_SIZE + temp * positions.GAP_5_SIZE;
+      const thisIndex = xMapStart + i * positions.CELL_SIZE + (i - 1) * positions.GAP_SIZE + temp * positions.GAP_5_SIZE;
       xCheatSheet.push(thisIndex);
     }
     temp = 0;
@@ -231,10 +232,10 @@ function Board() {
       if (!(i % 5)) {
         temp++;
       }
-      let thisIndex = yMapStart + i * positions.CELL_SIZE + (i - 1) * positions.GAP_SIZE + temp * positions.GAP_5_SIZE;
+      const thisIndex = yMapStart + i * positions.CELL_SIZE + (i - 1) * positions.GAP_SIZE + temp * positions.GAP_5_SIZE;
       yCheatSheet.push(thisIndex);
     }
-  
+
     // Initiate Renderable objects
     cells = [];
     ticks = [];
@@ -253,23 +254,23 @@ function Board() {
           xMapStart + i * positions.CELL_SIZE + (i - 1) * positions.GAP_SIZE + x5gaps * positions.GAP_5_SIZE,
           yMapStart + j * positions.CELL_SIZE + (j - 1) * positions.GAP_SIZE + y5gaps * positions.GAP_5_SIZE,
           index++,
-          this.c
-          ));
-          ticks.push(tickType.BLANK);
+          this.c,
+        ));
+        ticks.push(tickType.BLANK);
       }
     }
-    toolText = new Text(
-      xCheatSheet[NUM_X - 1] + positions.CELL_SIZE + 20,
-      yMapStart,
-      tickType.BLANK,
-     '30px',
-      200,
-      this.c
-    );
-  }
-  
+    // toolText = new Text(
+    //   xCheatSheet[NUM_X - 1] + positions.CELL_SIZE + 20,
+    //   yMapStart,
+    //   tickType.BLANK,
+    //   '30px',
+    //   200,
+    //   this.c,
+    // );
+  };
+
   this.checkWin = () => {
-    for (var i = 0; i < ticks.length; i++) {
+    for (let i = 0; i < ticks.length; i++) {
       if (win[i] === tickType.TICKED) {
         if (ticks[i] !== win[i]) {
           return false;
@@ -279,12 +280,12 @@ function Board() {
     alert('You win!');
     this.boardInit();
     return true;
-  }  
+  };
 }
 
 function randomWin(tickedPercentage) {
-  for (var i = 0; i < NUM_X; i++) {
-    for (var j = 0; j < NUM_Y; j++) {
+  for (let i = 0; i < NUM_X; i++) {
+    for (let j = 0; j < NUM_Y; j++) {
       win.push(Math.random() < tickedPercentage
         ? tickType.TICKED
         : tickType.BLANK);
@@ -293,12 +294,12 @@ function randomWin(tickedPercentage) {
 }
 
 function getTrains(tickArray, coord, isX, len) {
-  let trains = [];
+  const trains = [];
   let currTrain = 0;
   let nextCoord;
   // const maxCoord = isX ? NUM_Y : NUM_X;
-  for (var i = 0; i < len; i++) {
-    nextCoord = isX 
+  for (let i = 0; i < len; i++) {
+    nextCoord = isX
       ? NUM_Y * i + coord
       : i + coord * NUM_X;
     if (tickArray[nextCoord] === tickType.TICKED) {
@@ -308,36 +309,44 @@ function getTrains(tickArray, coord, isX, len) {
       currTrain = 0;
     }
   }
-  if (currTrain) {  
+  if (currTrain) {
     trains.push(currTrain);
   }
   return trains;
 }
 
 function compareTrainArrays(expected, current) {
+  // If current has more numbers or has a bigger max
+  if (expected.length < current.length
+    || expected.reduce((acc, el) => (el > acc ? el : acc), 0) < current.reduce((acc, el) => (el > acc ? el : acc), 0)) {
+    return expected.map(() => false);
+  }
+
   const leftCheck = expected.reduce(cum => cum.concat([null]), []);
   const rightCheck = expected.reduce(cum => cum.concat([null]), []);
+
   let expectedIndex = 0;
   let currIndex = 0;
-  while (expectedIndex < expected.length && currIndex < current.length) {
+
+  while (expectedIndex < expected.length) {
     if (expected[expectedIndex] === current[currIndex]) {
       leftCheck[expectedIndex] = true;
-      currIndex++;
+      currIndex += 1;
     }
     expectedIndex++;
   }
   expectedIndex = expected.length - 1;
   currIndex = current.length - 1;
-  while (expectedIndex >= 0 && currIndex >= 0) {
+  while (expectedIndex >= 0) {
     if (expected[expectedIndex] === current[currIndex]) {
       rightCheck[expectedIndex] = true;
       currIndex--;
     }
     expectedIndex--;
   }
-  let truthArray = []
-  for (var i = 0; i < leftCheck.length; i++) {
-    truthArray.push(leftCheck[i] && rightCheck[i])
+  const truthArray = [];
+  for (let i = 0; i < leftCheck.length; i++) {
+    truthArray.push(leftCheck[i] && rightCheck[i]);
   }
 
   return truthArray;
@@ -346,20 +355,21 @@ function compareTrainArrays(expected, current) {
 function updateDirectionHelpers(cellIndex) {
   const x = cellIndex % NUM_Y;
   const y = Math.floor(cellIndex / NUM_X);
-  
+  console.log('X and Y', x, y);
+  console.log(yDirections);
   let thisReturn = compareTrainArrays(
     yDirections[y],
-    getTrains(ticks, y, false, NUM_X)
+    getTrains(ticks, y, false, NUM_X),
   );
   yDirectionHelper[y] = thisReturn;
 
   thisReturn = compareTrainArrays(
     xDirections[x],
-    getTrains(ticks, x, true, NUM_Y)
+    getTrains(ticks, x, true, NUM_Y),
   );
   xDirectionHelper[x] = thisReturn;
   return {
-    x: xDirectionHelper[x], 
+    x: xDirectionHelper[x],
     y: yDirectionHelper[y],
   };
 }
@@ -377,7 +387,7 @@ function buildDirections() {
     maxYdirections = Math.max(maxYdirections, currLine.length);
     yDirectionHelper.push(currLine.reduce(cum => cum.concat([null]), []));
   }
-  
+
   for (var i = 0; i < NUM_Y; i++) {
     currLine = getTrains(win, i, true, NUM_Y);
     xDirections.push(currLine);
@@ -393,8 +403,8 @@ function buildDirections() {
  *  GAME FUNCTIONS
  */
 function wipeBoard() {
-  for (var i = 0; i < NUM_X; i++) {
-    for (var j = 0; j < NUM_Y; j++) {
+  for (let i = 0; i < NUM_X; i++) {
+    for (let j = 0; j < NUM_Y; j++) {
       cells[i * NUM_Y + j].setTick(tickType.BLANK);
       ticks[i * NUM_Y + j] = tickType.BLANK;
     }
@@ -402,8 +412,8 @@ function wipeBoard() {
 }
 
 function giveUp() {
-  for (var i = 0; i < NUM_X; i++) {
-    for (var j = 0; j < NUM_Y; j++) {
+  for (let i = 0; i < NUM_X; i++) {
+    for (let j = 0; j < NUM_Y; j++) {
       cells[i * NUM_Y + j].setTick(win[i * NUM_Y + j]);
       ticks[i * NUM_Y + j] = win[i * NUM_Y + j];
     }
@@ -419,12 +429,8 @@ function getCellByPosition(x, y) {
     return -2;
   }
 
-  const foundX = xCheatSheet.findIndex((el, ind) => {
-    return ind === NUM_X || (x >= el && x < xCheatSheet[ind + 1]);
-  });
-  const foundY = yCheatSheet.findIndex((el, ind) => {
-    return ind === NUM_Y || (y >= el && y < yCheatSheet[ind + 1]);
-  });
+  const foundX = xCheatSheet.findIndex((el, ind) => ind === NUM_X || (x >= el && x < xCheatSheet[ind + 1]));
+  const foundY = yCheatSheet.findIndex((el, ind) => ind === NUM_Y || (y >= el && y < yCheatSheet[ind + 1]));
 
   if (foundX >= 0 && foundY >= 0) {
     return foundX * NUM_X + foundY;
@@ -444,6 +450,7 @@ function getCellDifference(a, b) {
 function updateDirectionTextColor(chosenCell, newHelpers) {
   const x = Math.floor(chosenCell / NUM_X);
   const y = chosenCell % NUM_Y;
+  console.log(chosenCell, newHelpers);
   for (var i = 0; i < newHelpers.x.length; i++) {
     if (newHelpers.x[i]) {
       xDirectionText[y][newHelpers.x.length - i - 1].setColor(colors.COLOR_CORRECT_DIRECTION_TEXT);
@@ -460,9 +467,9 @@ function updateDirectionTextColor(chosenCell, newHelpers) {
   }
 }
 
-export default function Game() {
+export default function Game({ updateToolCallback }) {
   const b = new Board();
-  b.initialize();
+  b.initialize(updateToolCallback);
   b.boardInit();
   b.animate();
 }
