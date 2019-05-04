@@ -9,14 +9,19 @@ export default class Canvas extends React.Component {
 
   render() {
     return (
-      <div>
-        <canvas id="main-canvas" />
-        <input type="text" id="map-width" placeholder="Width" />
-        <input type="text" id="map-height" placeholder="Height" />
-        {/* <button onClick="changeSizes()">INIT</button> */}
-        <br />
-        {/* <button onClick="wipeBoard()">Wipe Board</button> */}
-        {/* <button onclick="giveUp()">Give UP</button> */}
+      <div className="canvas-grid">
+        <div className="canvas-container">
+          <canvas id="main-canvas" />
+        </div>
+        <div className="canvas-button">
+          <input type="text" id="map-width" placeholder="Width" />
+          <input type="text" id="map-height" placeholder="Height" />
+        </div>
+        <div>
+          {/* <button onClick="changeSizes()">INIT</button> */}
+          {/* <button onClick="wipeBoard()">Wipe Board</button> */}
+          {/* <button onclick="giveUp()">Give UP</button> */}
+        </div>
       </div>
     );
   }

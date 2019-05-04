@@ -19,7 +19,6 @@ const NUM_Y = 10;
 let xCheatSheet = [];
 let yCheatSheet = [];
 let cells = [];
-let toolText;
 let ticks = [];
 let chosenTool = tickType.BLANK;
 let win = [];
@@ -46,8 +45,8 @@ const keyMapping = {
 function Board() {
   this.initialize = (updateToolCallback) => {
     this.canvas = document.getElementById('main-canvas');
-    this.xEdge = window.innerWidth;
-    this.yEdge = window.innerHeight - 200;
+    this.xEdge = window.innerWidth - 500;
+    this.yEdge = window.innerHeight - 500;
     this.canvas.width = this.xEdge;
     this.canvas.height = this.yEdge;
     this.c = this.canvas.getContext('2d');
@@ -104,8 +103,9 @@ function Board() {
     }, false);
 
     this.canvas.onmousemove = (e) => {
-      mouseX = e.clientX;
-      mouseY = e.clientY;
+      const rect = this.canvas.getBoundingClientRect();
+      mouseX = e.clientX - rect.left;
+      mouseY = e.clientY - rect.top;
       leftBoard = mouseX > xCheatSheet[xCheatSheet.length - 1] + positions.CELL_SIZE
         || mouseX < xMapStart
         || mouseY > yCheatSheet[yCheatSheet.length - 1] + positions.CELL_SIZE
