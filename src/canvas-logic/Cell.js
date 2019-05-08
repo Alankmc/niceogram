@@ -1,9 +1,37 @@
 import { positions, colors, tickType } from './system-constants';
+import { hex2rgb } from './toolbox';
+
+const RGB_CHANGE_SPEED = 3;
+const RGB_COLOR_CHOSEN = hex2rgb(colors.COLOR_CHOSEN);
+const RGB_COLOR_BLANK = hex2rgb(colors.COLOR_BLANK);
+
+function updateRgbColor(from, to) {
+  const returnObj = {};
+  Object.keys(from).forEach((el) => {
+    if (from[el] !== to[el]) {
+      if (from[el] > to[el]) {
+        returnObj[el] = Math.max(to[el], from[el] - RGB_CHANGE_SPEED);
+      } else {
+        returnObj[el] = Math.min(to[el], from[el] + RGB_CHANGE_SPEED);
+      }
+    } else {
+      returnObj[el] = to[el];
+    }
+  });
+
+  return returnObj;
+}
+
+function compareRgb(a, b) {
+  return a.r === b.r
+    && a.g === b.g
+    && a.b === b.b;
+}
 
 export default function Cell(x, y, index, context) {
   this.x = x;
   this.y = y;
-  this.color = colors.COLOR_BLANK;
+  this.color = hex2rgb(colors.COLOR_BLANK);
   this.index = index;
   this.size = positions.CELL_SIZE;
   this.isChosen = false;
@@ -16,25 +44,23 @@ export default function Cell(x, y, index, context) {
   this.X_GROW_TO = 0.3 * positions.CELL_SIZE / 2;
   this.c = context;
   this.getTick = () => this.tick;
-  this.setTick = (override) => this.tick = override;
+  this.setTick = override => this.tick = override;
 
   this.paintCell = (tick) => {
     if (tick === tickType.DELETE) {
       this.tick = tickType.BLANK;
-    } else {
-      if (this.tick === tickType.BLANK) {
-        this.tick = tick;
-      }
+    } else if (this.tick === tickType.BLANK) {
+      this.tick = tick;
     }
-  }
+  };
 
   this.draw = (c) => {
-    c.fillStyle = this.color;
+    c.fillStyle = `rgb(${this.color.r},${this.color.g},${this.color.b})`;
     c.fillRect(
       this.x,
       this.y,
       this.size,
-      this.size
+      this.size,
     );
     if (this.tickGrownBy) {
       c.fillStyle = colors.COLOR_FILL;
@@ -43,7 +69,7 @@ export default function Cell(x, y, index, context) {
         this.y + positions.CELL_SIZE / 2 - this.tickGrownBy / 2,
         this.tickGrownBy,
         this.tickGrownBy,
-      )
+      );
     }
     if (this.xGrownBy) {
       c.fillStyle = colors.COLOR_X;
@@ -54,7 +80,8 @@ export default function Cell(x, y, index, context) {
         this.xGrownBy,
         0,
         Math.PI * 2,
-        false);
+        false,
+      );
       c.fill();
       c.stroke();
     }
@@ -64,25 +91,25 @@ export default function Cell(x, y, index, context) {
     this.tickGrownBy = this.tickGrownBy + this.TICK_GROW_SPEED > this.TICK_GROW_TO
       ? this.TICK_GROW_TO
       : this.TICK_GROW_SPEED + this.tickGrownBy;
-  }
+  };
 
   this.reduceTick = () => {
     this.tickGrownBy = this.tickGrownBy - this.TICK_GROW_SPEED < 0
       ? 0
       : this.tickGrownBy - this.TICK_GROW_SPEED;
-  }
+  };
 
   this.growX = () => {
     this.xGrownBy = this.xGrownBy + this.X_GROW_SPEED > this.X_GROW_TO
       ? this.X_GROW_TO
       : this.X_GROW_SPEED + this.xGrownBy;
-  }
+  };
 
   this.reduceX = () => {
     this.xGrownBy = this.xGrownBy - this.X_GROW_SPEED < 0
       ? 0
       : this.xGrownBy - this.X_GROW_SPEED;
-  }
+  };
 
   this.update = (mouseX, mouseY, chosenCell, leftBoard, b) => {
     let thisChosenCell = chosenCell;
@@ -90,30 +117,28 @@ export default function Cell(x, y, index, context) {
       && mouseY >= this.y
       && mouseX < this.x + this.size
       && mouseY < this.y + this.size;
-    
+
     if (this.isChosen) {
       thisChosenCell = this.index;
       b.setChosenCell(this.index);
-    } else if (thisChosenCell === this.index && leftBoard){
+    } else if (thisChosenCell === this.index && leftBoard) {
       thisChosenCell = undefined;
       b.setChosenCell(undefined);
     }
 
-    if (thisChosenCell === this.index) {
-      if (this.color !== colors.COLOR_CHOSEN) {
-        this.color = colors.COLOR_CHOSEN;
-      }
-    } else if (this.color === colors.COLOR_CHOSEN) {
-      this.color = colors.COLOR_BLANK;
+    if (thisChosenCell === this.index && !compareRgb(this.color, RGB_COLOR_CHOSEN)) {
+      this.color = updateRgbColor(this.color, RGB_COLOR_CHOSEN);
+    } else if (thisChosenCell !== this.index && !compareRgb(this.color, RGB_COLOR_BLANK)) {
+      this.color = updateRgbColor(this.color, RGB_COLOR_BLANK);
     }
-    
+
     if (this.tick !== tickType.BLANK) {
       if (this.tick === tickType.X) {
-       this.growX();
+        this.growX();
       } else if (this.tickGrownBy < this.TICK_GROW_TO) {
-       this.growTick();
+        this.growTick();
       }
-    } else {  
+    } else {
       if (this.tickGrownBy > 0) {
         this.reduceTick();
       }
@@ -121,7 +146,7 @@ export default function Cell(x, y, index, context) {
         this.reduceX();
       }
     }
-    
+
     this.draw(this.c);
   };
 }
