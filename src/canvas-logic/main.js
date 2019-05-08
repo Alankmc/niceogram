@@ -89,7 +89,6 @@ function Board() {
         }
         pressedKey = e.code;
         updateToolCallback(chosenTool);
-        // toolText.setText(chosenTool);
       }
     }, false);
 
@@ -98,7 +97,6 @@ function Board() {
         pressedKey = null;
         chosenTool = tickType.BLANK;
         updateToolCallback(chosenTool);
-        // toolText.setText(chosenTool);
       }
     }, false);
 
@@ -112,10 +110,10 @@ function Board() {
         || mouseY < yMapStart;
       if (lastChosen !== this.chosenCell) {
         // Direction Highlights
-        (lastChosen >= 0) && yDirectionHighlight[Math.floor(lastChosen / NUM_Y)].setColor(colors.COLOR_DIRECTION_INVISIBLE);
-        (this.chosenCell >= 0) && yDirectionHighlight[Math.floor(this.chosenCell / NUM_Y)].setColor(colors.COLOR_DIRECTION_CHOSEN);
-        (lastChosen >= 0) && xDirectionHighlight[lastChosen % NUM_Y].setColor(colors.COLOR_DIRECTION_INVISIBLE);
-        (this.chosenCell >= 0) && xDirectionHighlight[this.chosenCell % NUM_Y].setColor(colors.COLOR_DIRECTION_CHOSEN);
+        (lastChosen >= 0) && yDirectionHighlight[Math.floor(lastChosen / NUM_Y)].setActive(false);
+        (this.chosenCell >= 0) && yDirectionHighlight[Math.floor(this.chosenCell / NUM_Y)].setActive(true);
+        (lastChosen >= 0) && xDirectionHighlight[lastChosen % NUM_Y].setActive(false);
+        (this.chosenCell >= 0) && xDirectionHighlight[this.chosenCell % NUM_Y].setActive(true);
 
         lastChosen = this.chosenCell;
         const paintingAs = chosenTool === tickType.DELETE
@@ -166,21 +164,22 @@ function Board() {
     let currLine = [];
     let currDirection;
     let temp = 0;
-    for (var i = 0; i < NUM_Y; i++) {
+    for (let i = 0; i < NUM_Y; i++) {
       currDirection = xDirections[i];
       currLine = [];
       if (!(i % 5)) {
         temp++;
       }
+      // Initiate Direction Highlight
       xDirectionHighlight.push(new DirectionHighlight(
         positions.X_START,
         yMapStart + i * (positions.CELL_SIZE) + (i - 1) * positions.GAP_SIZE + temp * positions.GAP_5_SIZE,
         xMapStart - positions.X_START - DIRECTION_GAP,
         positions.CELL_SIZE,
-        colors.COLOR_DIRECTION_INVISIBLE,
+        colors.COLOR_DIRECTION_CHOSEN,
         this.c,
       ));
-      for (var j = 0; j < currDirection.length; j++) {
+      for (let j = 0; j < currDirection.length; j++) {
         currLine.push(new Text(
           xMapStart - (j + 1) * (positions.CELL_SIZE + DIRECTION_GAP) + DIRECTION_TEXT_PAD,
           yMapStart + i * (positions.CELL_SIZE + positions.GAP_SIZE) + temp * positions.GAP_5_SIZE + DIRECTION_TEXT_PAD,
@@ -193,7 +192,7 @@ function Board() {
       xDirectionText.push(currLine);
     }
     temp = 0;
-    for (var i = 0; i < NUM_X; i++) {
+    for (let i = 0; i < NUM_X; i++) {
       currDirection = yDirections[i];
       currLine = [];
       if (!(i % 5)) {
@@ -204,10 +203,10 @@ function Board() {
         positions.Y_START,
         positions.CELL_SIZE,
         yMapStart - positions.Y_START - DIRECTION_GAP,
-        colors.COLOR_DIRECTION_INVISIBLE,
+        colors.COLOR_DIRECTION_CHOSEN,
         this.c,
       ));
-      for (var j = 0; j < currDirection.length; j++) {
+      for (let j = 0; j < currDirection.length; j++) {
         currLine.push(new Text(
           xMapStart + i * (positions.CELL_SIZE + positions.GAP_SIZE) + temp * positions.GAP_5_SIZE + DIRECTION_TEXT_PAD,
           yMapStart - (j + 1) * (positions.CELL_SIZE + DIRECTION_GAP) + DIRECTION_TEXT_PAD,
@@ -220,7 +219,7 @@ function Board() {
       yDirectionText.push(currLine);
     }
     // Initiate helpers
-    for (var i = 0; i < NUM_X; i++) {
+    for (let i = 0; i < NUM_X; i++) {
       if (!(i % 5)) {
         temp++;
       }
@@ -228,7 +227,7 @@ function Board() {
       xCheatSheet.push(thisIndex);
     }
     temp = 0;
-    for (var i = 0; i < NUM_Y; i++) {
+    for (let i = 0; i < NUM_Y; i++) {
       if (!(i % 5)) {
         temp++;
       }
@@ -241,12 +240,12 @@ function Board() {
     ticks = [];
     let index = 0;
     let x5gaps = 0;
-    for (var i = 0; i < NUM_X; i++) {
+    for (let i = 0; i < NUM_X; i++) {
       let y5gaps = 0;
       if (!(i % 5)) {
         x5gaps++;
       }
-      for (var j = 0; j < NUM_Y; j++) {
+      for (let j = 0; j < NUM_Y; j++) {
         if (!(j % 5)) {
           y5gaps++;
         }
@@ -259,14 +258,6 @@ function Board() {
         ticks.push(tickType.BLANK);
       }
     }
-    // toolText = new Text(
-    //   xCheatSheet[NUM_X - 1] + positions.CELL_SIZE + 20,
-    //   yMapStart,
-    //   tickType.BLANK,
-    //   '30px',
-    //   200,
-    //   this.c,
-    // );
   };
 
   this.checkWin = () => {
@@ -355,8 +346,7 @@ function compareTrainArrays(expected, current) {
 function updateDirectionHelpers(cellIndex) {
   const x = cellIndex % NUM_Y;
   const y = Math.floor(cellIndex / NUM_X);
-  console.log('X and Y', x, y);
-  console.log(yDirections);
+
   let thisReturn = compareTrainArrays(
     yDirections[y],
     getTrains(ticks, y, false, NUM_X),
@@ -381,14 +371,14 @@ function buildDirections() {
   maxYdirections = 0;
   let currLine;
 
-  for (var i = 0; i < NUM_X; i++) {
+  for (let i = 0; i < NUM_X; i++) {
     currLine = getTrains(win, i, false, NUM_X);
     yDirections.push(currLine);
     maxYdirections = Math.max(maxYdirections, currLine.length);
     yDirectionHelper.push(currLine.reduce(cum => cum.concat([null]), []));
   }
 
-  for (var i = 0; i < NUM_Y; i++) {
+  for (let i = 0; i < NUM_Y; i++) {
     currLine = getTrains(win, i, true, NUM_Y);
     xDirections.push(currLine);
     maxXdirections = Math.max(maxXdirections, currLine.length);

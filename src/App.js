@@ -10,7 +10,6 @@ class App extends Component {
   updateTool = tool => this.setState({ tool })
 
   render() {
-    console.log('Rendering App');
     return (
       <div className="App">
         <Canvas updateToolCallback={this.updateTool} />

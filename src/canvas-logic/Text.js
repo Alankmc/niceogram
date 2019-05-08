@@ -1,5 +1,5 @@
 export default function Text(x, y, text, size, maxWidth, context) {
-  this.x = x;
+  this.x = x + maxWidth / 2;
   this.y = y;
   this.text = text;
   this.size = size;
@@ -10,9 +10,9 @@ export default function Text(x, y, text, size, maxWidth, context) {
   this.setColor = color => this.color = color;
   this.draw = () => {
     this.c.textBaseline = 'hanging';
-    this.c.textAlign = 'left';
+    this.c.textAlign = 'center';
     this.c.fillStyle = this.color;
-    this.c.font = this.size + ' Arial';
+    this.c.font = `bold ${this.size} Quicksand`;
     this.c.fillText(this.text, this.x, this.y, maxWidth);
   };
 

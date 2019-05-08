@@ -11,7 +11,7 @@ export const colors = {
   COLOR_CHOSEN: '#e0e0e0',
   COLOR_X: 'red',
   COLOR_FILL: 'black',
-  COLOR_DIRECTION_INVISIBLE: 'white',
+  COLOR_DIRECTION_INVISIBLE: 'rgba(0, 0, 0, 0)',
   COLOR_DIRECTION_CHOSEN: '#e0e0e0',
   COLOR_DIRECTION_TEXT: 'black',
   COLOR_CORRECT_DIRECTION_TEXT: 'rgba(0, 0, 0, 0.28)',
