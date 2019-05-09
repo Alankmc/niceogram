@@ -85,7 +85,7 @@ export default function Cell(x, y, index, colorController, context) {
         false,
       );
       c.fill();
-      c.stroke();
+      // c.stroke();
     }
   };
 

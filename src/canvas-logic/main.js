@@ -2,7 +2,7 @@
 import Cell from './Cell';
 import DirectionHighlight from './DirectionHighlight';
 import Text from './Text';
-import { positions, colors, tickType } from './system-constants';
+import { positions, tickType } from './system-constants';
 import Background from './Background';
 import ColorControllerSingleton from './ColorController';
 
@@ -55,6 +55,7 @@ function Board() {
     this.canvas.width = this.xEdge;
     this.canvas.height = this.yEdge;
     this.c = this.canvas.getContext('2d');
+    background = new Background(colorController.getColor('BACKGROUND_COLOR'), this.canvas.width, this.canvas.height, this.c);
     this.initEventListeners(updateToolCallback);
   };
 
@@ -141,6 +142,7 @@ function Board() {
   this.animate = () => {
     requestAnimationFrame(this.animate);
     this.c.clearRect(0, 0, this.xEdge, this.yEdge);
+    background.update();
     cells.forEach(el => el.update(mouseX, mouseY, this.chosenCell, leftBoard, this));
     // toolText.update();
     yDirectionHighlight.forEach(el => el.update());
@@ -162,8 +164,6 @@ function Board() {
     pressedKey = null;
     isPainting = false;
     chosenTool = tickType.BLANK;
-
-    // background = new Background();
 
     randomWin(0.6);
     buildDirections();

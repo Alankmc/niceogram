@@ -1,3 +1,5 @@
+import { hex2rgb } from './toolbox';
+
 const colors = {
   debug: {
     COLOR_BLANK: '#f2f2f2',
@@ -7,27 +9,34 @@ const colors = {
     COLOR_DIRECTION_INVISIBLE: 'rgba(0, 0, 0, 0)',
     COLOR_DIRECTION_CHOSEN: '#e0e0e0',
     COLOR_DIRECTION_TEXT: 'black',
-    COLOR_CORRECT_DIRECTION_TEXT: 'rgba(0, 0, 0, 0.28)',
     TEXT_COLOR: 'black',
+    BACKGROUND_COLOR: 'pink',
   },
-  joy: {
-    COLOR_BLANK: '#ece6d2',
-    COLOR_CHOSEN: '#f2d7b4',
-    COLOR_X: '#df9881',
-    COLOR_FILL: '#58949c',
+  brown: {
+    COLOR_BLANK: '#F1F1F1',
+    COLOR_CHOSEN: '#D1C3B7',
+    COLOR_X: '#DDC1BD',
+    COLOR_FILL: '#836853',
     COLOR_DIRECTION_INVISIBLE: 'rgba(0, 0, 0, 0)',
-    COLOR_DIRECTION_CHOSEN: '#f2d7b4',
-    COLOR_DIRECTION_TEXT: '#df9881',
-    COLOR_CORRECT_DIRECTION_TEXT: 'rgb(223,152,129, 0.28)',
-    TEXT_COLOR: '#df9881',
+    COLOR_DIRECTION_CHOSEN: '#D1C3B7',
+    COLOR_DIRECTION_TEXT: '#836853',
+    TEXT_COLOR: '#836853',
+    BACKGROUND_COLOR: '#D1C3B7',
   },
 };
 
 function ColorController(colorScheme) {
-  this.colorScheme = colorScheme || 'debug';
+  this.colorScheme = colors[colorScheme || 'brown'];
 
-  this.setColorScheme = (newScheme) => { this.colorScheme = newScheme; };
-  this.getColor = key => colors[this.colorScheme][key];
+  this.setColorScheme = (newScheme) => { this.colorScheme = colors[newScheme]; };
+  this.getColor = (key) => {
+    if (key === 'COLOR_CORRECT_DIRECTION_TEXT') {
+      const thisColor = hex2rgb(this.colorScheme.COLOR_DIRECTION_TEXT);
+
+      return `rgba(${thisColor.r}, ${thisColor.g}, ${thisColor.b}, 0.3)`;
+    }
+    return this.colorScheme[key];
+  };
 }
 
 let instance = null;
