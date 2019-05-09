@@ -2,7 +2,6 @@ import { hex2rgb } from './toolbox';
 
 const OPACITY_SPEED = 0.1;
 
-
 export default function DirectionHighlight(x, y, width, height, color, context) {
   this.x = x;
   this.y = y;

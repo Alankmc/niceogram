@@ -1,9 +1,7 @@
-import { positions, colors, tickType } from './system-constants';
+import { positions, tickType } from './system-constants';
 import { hex2rgb } from './toolbox';
 
 const RGB_CHANGE_SPEED = 3;
-const RGB_COLOR_CHOSEN = hex2rgb(colors.COLOR_CHOSEN);
-const RGB_COLOR_BLANK = hex2rgb(colors.COLOR_BLANK);
 
 function updateRgbColor(from, to) {
   const returnObj = {};
@@ -28,10 +26,10 @@ function compareRgb(a, b) {
     && a.b === b.b;
 }
 
-export default function Cell(x, y, index, context) {
+export default function Cell(x, y, index, colorController, context) {
   this.x = x;
   this.y = y;
-  this.color = hex2rgb(colors.COLOR_BLANK);
+  this.color = hex2rgb(colorController.getColor('COLOR_BLANK'));
   this.index = index;
   this.size = positions.CELL_SIZE;
   this.isChosen = false;
@@ -43,6 +41,10 @@ export default function Cell(x, y, index, context) {
   this.X_GROW_SPEED = 3;
   this.X_GROW_TO = 0.3 * positions.CELL_SIZE / 2;
   this.c = context;
+
+  this.RGB_COLOR_CHOSEN = hex2rgb(colorController.getColor('COLOR_CHOSEN'));
+  this.RGB_COLOR_BLANK = hex2rgb(colorController.getColor('COLOR_BLANK'));
+
   this.getTick = () => this.tick;
   this.setTick = override => this.tick = override;
 
@@ -63,7 +65,7 @@ export default function Cell(x, y, index, context) {
       this.size,
     );
     if (this.tickGrownBy) {
-      c.fillStyle = colors.COLOR_FILL;
+      c.fillStyle = colorController.getColor('COLOR_FILL');
       c.fillRect(
         this.x + positions.CELL_SIZE / 2 - this.tickGrownBy / 2,
         this.y + positions.CELL_SIZE / 2 - this.tickGrownBy / 2,
@@ -72,7 +74,7 @@ export default function Cell(x, y, index, context) {
       );
     }
     if (this.xGrownBy) {
-      c.fillStyle = colors.COLOR_X;
+      c.fillStyle = colorController.getColor('COLOR_X');
       c.beginPath();
       c.arc(
         this.x + positions.CELL_SIZE / 2,
@@ -126,10 +128,10 @@ export default function Cell(x, y, index, context) {
       b.setChosenCell(undefined);
     }
 
-    if (thisChosenCell === this.index && !compareRgb(this.color, RGB_COLOR_CHOSEN)) {
-      this.color = updateRgbColor(this.color, RGB_COLOR_CHOSEN);
-    } else if (thisChosenCell !== this.index && !compareRgb(this.color, RGB_COLOR_BLANK)) {
-      this.color = updateRgbColor(this.color, RGB_COLOR_BLANK);
+    if (thisChosenCell === this.index && !compareRgb(this.color, this.RGB_COLOR_CHOSEN)) {
+      this.color = updateRgbColor(this.color, this.RGB_COLOR_CHOSEN);
+    } else if (thisChosenCell !== this.index && !compareRgb(this.color, this.RGB_COLOR_BLANK)) {
+      this.color = updateRgbColor(this.color, this.RGB_COLOR_BLANK);
     }
 
     if (this.tick !== tickType.BLANK) {

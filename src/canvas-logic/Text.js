@@ -1,9 +1,9 @@
-export default function Text(x, y, text, size, maxWidth, context) {
+export default function Text(x, y, text, size, color, maxWidth, context) {
   this.x = x + maxWidth / 2;
   this.y = y;
   this.text = text;
   this.size = size;
-  this.color = 'black';
+  this.color = color;
   this.c = context;
 
   this.setText = text => this.text = text;

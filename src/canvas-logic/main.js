@@ -3,6 +3,8 @@ import Cell from './Cell';
 import DirectionHighlight from './DirectionHighlight';
 import Text from './Text';
 import { positions, colors, tickType } from './system-constants';
+import Background from './Background';
+import ColorControllerSingleton from './ColorController';
 
 const DIRECTION_GAP = 3;
 const DIRECTION_FONT_SIZE = `${positions.CELL_SIZE * 0.8}px`;
@@ -16,6 +18,7 @@ let isPainting = false;
 const NUM_X = 10;
 const NUM_Y = 10;
 
+let background;
 let xCheatSheet = [];
 let yCheatSheet = [];
 let cells = [];
@@ -41,6 +44,8 @@ const keyMapping = {
   [tickType.TICKED]: 'KeyW',
   [tickType.DELETE]: 'KeyD',
 };
+
+const colorController = ColorControllerSingleton.getInstance();
 
 function Board() {
   this.initialize = (updateToolCallback) => {
@@ -158,6 +163,8 @@ function Board() {
     isPainting = false;
     chosenTool = tickType.BLANK;
 
+    // background = new Background();
+
     randomWin(0.6);
     buildDirections();
 
@@ -176,7 +183,7 @@ function Board() {
         yMapStart + i * (positions.CELL_SIZE) + (i - 1) * positions.GAP_SIZE + temp * positions.GAP_5_SIZE,
         xMapStart - positions.X_START - DIRECTION_GAP,
         positions.CELL_SIZE,
-        colors.COLOR_DIRECTION_CHOSEN,
+        colorController.getColor('COLOR_DIRECTION_CHOSEN'),
         this.c,
       ));
       for (let j = 0; j < currDirection.length; j++) {
@@ -185,6 +192,7 @@ function Board() {
           yMapStart + i * (positions.CELL_SIZE + positions.GAP_SIZE) + temp * positions.GAP_5_SIZE + DIRECTION_TEXT_PAD,
           currDirection[currDirection.length - j - 1].toString(),
           DIRECTION_FONT_SIZE,
+          colorController.getColor('TEXT_COLOR'),
           positions.CELL_SIZE * 0.8,
           this.c,
         ));
@@ -203,7 +211,7 @@ function Board() {
         positions.Y_START,
         positions.CELL_SIZE,
         yMapStart - positions.Y_START - DIRECTION_GAP,
-        colors.COLOR_DIRECTION_CHOSEN,
+        colorController.getColor('COLOR_DIRECTION_CHOSEN'),
         this.c,
       ));
       for (let j = 0; j < currDirection.length; j++) {
@@ -212,6 +220,7 @@ function Board() {
           yMapStart - (j + 1) * (positions.CELL_SIZE + DIRECTION_GAP) + DIRECTION_TEXT_PAD,
           currDirection[currDirection.length - j - 1].toString(),
           DIRECTION_FONT_SIZE,
+          colorController.getColor('TEXT_COLOR'),
           positions.CELL_SIZE * 0.8,
           this.c,
         ));
@@ -253,6 +262,7 @@ function Board() {
           xMapStart + i * positions.CELL_SIZE + (i - 1) * positions.GAP_SIZE + x5gaps * positions.GAP_5_SIZE,
           yMapStart + j * positions.CELL_SIZE + (j - 1) * positions.GAP_SIZE + y5gaps * positions.GAP_5_SIZE,
           index++,
+          colorController,
           this.c,
         ));
         ticks.push(tickType.BLANK);
@@ -440,19 +450,19 @@ function getCellDifference(a, b) {
 function updateDirectionTextColor(chosenCell, newHelpers) {
   const x = Math.floor(chosenCell / NUM_X);
   const y = chosenCell % NUM_Y;
-  console.log(chosenCell, newHelpers);
+
   for (var i = 0; i < newHelpers.x.length; i++) {
     if (newHelpers.x[i]) {
-      xDirectionText[y][newHelpers.x.length - i - 1].setColor(colors.COLOR_CORRECT_DIRECTION_TEXT);
+      xDirectionText[y][newHelpers.x.length - i - 1].setColor(colorController.getColor('COLOR_CORRECT_DIRECTION_TEXT'));
     } else {
-      xDirectionText[y][newHelpers.x.length - i - 1].setColor(colors.COLOR_DIRECTION_TEXT);
+      xDirectionText[y][newHelpers.x.length - i - 1].setColor(colorController.getColor('COLOR_DIRECTION_TEXT'));
     }
   }
   for (var i = 0; i < newHelpers.y.length; i++) {
     if (newHelpers.y[i]) {
-      yDirectionText[x][newHelpers.y.length - i - 1].setColor(colors.COLOR_CORRECT_DIRECTION_TEXT);
+      yDirectionText[x][newHelpers.y.length - i - 1].setColor(colorController.getColor('COLOR_CORRECT_DIRECTION_TEXT'));
     } else {
-      yDirectionText[x][newHelpers.y.length - i - 1].setColor(colors.COLOR_DIRECTION_TEXT);
+      yDirectionText[x][newHelpers.y.length - i - 1].setColor(colorController.getColor('COLOR_DIRECTION_TEXT'));
     }
   }
 }
