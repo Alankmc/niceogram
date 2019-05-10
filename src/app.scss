@@ -1,6 +1,14 @@
-$pastel-blue: #ace7ff;
-$pastel-green: #aff8d8;
-$pastel-red: #ffabab;
+.app-container  {
+  position:fixed;
+  padding:0;
+  margin:0;
+
+  top:0;
+  left:0;
+
+  width: 100%;
+  height: 100%;
+}
 
 .App {
   text-align: center;
@@ -54,7 +62,6 @@ $pastel-red: #ffabab;
   transition: all 0.1s;
   border: 2px solid white;
   z-index: 1;
-  color: white;
 
   &--chosen {
     height: 55px;
@@ -68,18 +75,17 @@ $pastel-red: #ffabab;
   
   &--TICKED {
     
-    background-color: $pastel-green;
     left: 30px;
   }
 
   &--DELETE {
-    background-color: $pastel-red;
+    
     left: 60px;
     top: 52px;
   }
 
   &--X {
-    background-color: $pastel-blue;
+    
     top: 52px;
   }
 }

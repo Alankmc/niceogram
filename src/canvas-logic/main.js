@@ -50,8 +50,8 @@ const colorController = ColorControllerSingleton.getInstance();
 function Board() {
   this.initialize = (updateToolCallback) => {
     this.canvas = document.getElementById('main-canvas');
-    this.xEdge = window.innerWidth - 500;
-    this.yEdge = window.innerHeight - 500;
+    this.xEdge = window.innerWidth;
+    this.yEdge = window.innerHeight;
     this.canvas.width = this.xEdge;
     this.canvas.height = this.yEdge;
     this.c = this.canvas.getContext('2d');
@@ -455,14 +455,14 @@ function updateDirectionTextColor(chosenCell, newHelpers) {
     if (newHelpers.x[i]) {
       xDirectionText[y][newHelpers.x.length - i - 1].setColor(colorController.getColor('COLOR_CORRECT_DIRECTION_TEXT'));
     } else {
-      xDirectionText[y][newHelpers.x.length - i - 1].setColor(colorController.getColor('COLOR_DIRECTION_TEXT'));
+      xDirectionText[y][newHelpers.x.length - i - 1].setColor(colorController.getColor('TEXT_COLOR'));
     }
   }
   for (var i = 0; i < newHelpers.y.length; i++) {
     if (newHelpers.y[i]) {
       yDirectionText[x][newHelpers.y.length - i - 1].setColor(colorController.getColor('COLOR_CORRECT_DIRECTION_TEXT'));
     } else {
-      yDirectionText[x][newHelpers.y.length - i - 1].setColor(colorController.getColor('COLOR_DIRECTION_TEXT'));
+      yDirectionText[x][newHelpers.y.length - i - 1].setColor(colorController.getColor('TEXT_COLOR'));
     }
   }
 }
