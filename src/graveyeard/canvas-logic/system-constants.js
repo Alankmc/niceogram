@@ -7,8 +7,8 @@ export const positions = {
 };
 
 export const tickType = {
-  BLANK: 'BLANK',
-  TICKED: 'TICKED',
-  X: 'X',
-  DELETE: 'DELETE',
+  BLANK: "BLANK",
+  TICKED: "TICKED",
+  X: "X",
+  DELETE: "DELETE",
 };

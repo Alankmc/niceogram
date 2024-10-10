@@ -1,5 +1,5 @@
 export function hex2rgb(color) {
-  const splitColor = color.split('#');
+  const splitColor = color.split("#");
   const justNumbers = splitColor[splitColor.length - 1];
   return {
     r: parseInt(justNumbers[0] + justNumbers[1], 16),

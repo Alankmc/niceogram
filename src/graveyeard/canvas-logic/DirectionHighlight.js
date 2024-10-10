@@ -1,8 +1,15 @@
-import { hex2rgb } from './toolbox';
+import { hex2rgb } from "./toolbox";
 
 const OPACITY_SPEED = 0.1;
 
-export default function DirectionHighlight(x, y, width, height, color, context) {
+export default function DirectionHighlight(
+  x,
+  y,
+  width,
+  height,
+  color,
+  context,
+) {
   this.x = x;
   this.y = y;
   this.width = width;
@@ -28,12 +35,7 @@ export default function DirectionHighlight(x, y, width, height, color, context) 
     }
 
     this.c.fillStyle = `rgba(${this.color.r},${this.color.g},${this.color.b},${this.opacity})`;
-    this.c.fillRect(
-      this.x,
-      this.y,
-      this.width,
-      this.height,
-    );
+    this.c.fillRect(this.x, this.y, this.width, this.height);
   };
 
   this.update = () => {
