@@ -7,5 +7,3 @@ export function hex2rgb(color) {
     b: parseInt(justNumbers[4] + justNumbers[5], 16),
   };
 }
-
-export const hello = 1;
